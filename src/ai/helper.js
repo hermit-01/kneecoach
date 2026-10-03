@@ -1,9 +1,11 @@
 import {
   WEIGHTS, weightsUrl, chunkCount, downloadModel, modelBlob, idbChunkStore, ensureModelId, seedCache, isCached, downloadConditions,
 } from './download.js';
-import { systemPrompt, explainRequest, roundMessageRequest, doctorParagraphRequest } from './prompts.js';
+import {
+  systemPrompt, explainRequest, roundMessageRequest, doctorParagraphRequest, tidyAnswer, REWRITE_SYSTEM, MESSAGE_SYSTEM, DOCTOR_SYSTEM,
+} from './prompts.js';
 import { hasRedFlag, RED_FLAG_MESSAGE } from './redflags.js';
-import { isPlanChangeRequest, PLAN_CHANGE_MESSAGE } from './guards.js';
+import { guardFor } from './guards.js';
 
 // One helper for the whole app. Screens read its status through useHelper().
 const CRASH_FLAG = 'kneecoach-helper-loading';
@@ -99,34 +101,35 @@ export async function prepareHelper({
   }
 }
 
-function run(plan, request, onText) {
-  const next = queue.then(() => engine.generate(systemPrompt(plan), request, { onText }));
+function run(system, user, onText) {
+  const next = queue.then(() => engine.generate(system, user, { onText })).then(tidyAnswer);
   queue = next.catch(() => {});
   return next;
 }
 
 export async function ask(plan, question, onText) {
   if (hasRedFlag(question)) return { text: RED_FLAG_MESSAGE, redFlag: true };
-  if (isPlanChangeRequest(question)) return { text: PLAN_CHANGE_MESSAGE, planChange: true };
+  const guard = guardFor(question);
+  if (guard) return { text: guard.message, [guard.kind]: true };
   if (snapshot.status !== 'ready') return { text: null, unavailable: true };
   try {
-    return { text: await run(plan, question, onText) };
+    return { text: await run(systemPrompt(plan), question, onText) };
   } catch (error) {
     console.error(error);
     return { text: "Sorry, I couldn't answer that just now.", failed: true };
   }
 }
 
-async function job(plan, request, onText) {
+async function job(system, request, onText) {
   if (snapshot.status !== 'ready') return null;
   try {
-    return await run(plan, request, onText);
+    return await run(system, request, onText);
   } catch (error) {
     console.error(error);
     return null;
   }
 }
 
-export const explain = (plan, exercise, onText) => job(plan, explainRequest(exercise), onText);
-export const roundMessage = (plan, facts) => job(plan, roundMessageRequest(facts));
-export const doctorParagraph = (plan, summary, onText) => job(plan, doctorParagraphRequest(summary), onText);
+export const explain = (plan, exercise, onText) => job(REWRITE_SYSTEM, explainRequest(exercise), onText);
+export const roundMessage = (plan, facts) => job(MESSAGE_SYSTEM, roundMessageRequest(facts));
+export const doctorParagraph = (plan, summary, onText) => job(DOCTOR_SYSTEM, doctorParagraphRequest(summary), onText);

@@ -9,3 +9,24 @@ export const PLAN_CHANGE_MESSAGE =
 export function isPlanChangeRequest(text) {
   return PLAN_CHANGE_PATTERN.test(text);
 }
+
+// Medicines, injections, surgery and diet are for her treating doctor (spec §6.3). In testing,
+// Gemma 3 1B called a steroid injection "reasonable", so these never reach it.
+export const MEDICAL_PATTERN =
+  /\b(ibuprofen|paracetamol|acetaminophen|naproxen|diclofenac|aspirin|nsaids?|painkillers?|pain ?killers?|medicines?|medications?|tablets?|pills?|doses?|dosage|\d+\s?mg|injections?|steroids?|cortisone|hyaluronic|surgery|operation|replacement|supplements?|glucosamine|turmeric|diet|foods?|eat|eating|weight loss|lose weight)\b/i;
+
+export const MEDICAL_MESSAGE = "That's outside what this app covers, so it's best checked with your treating doctor.";
+
+// In testing, Gemma 3 1B answered "Is my data sent anywhere?" with made-up progress.
+export const PRIVACY_PATTERN =
+  /\b(my data|data (is |be )?(sent|shared|stored|saved)|privacy|private|sent anywhere|leaves? (my|the|this) phone|upload(s|ed|ing)?|server|cloud|who can see)\b/i;
+
+export const PRIVACY_MESSAGE = 'No. KneeCoach and its helper run entirely on this phone, and nothing you type or record leaves it.';
+
+// The fixed answer from code for a question, or null when Gemma may answer it.
+export function guardFor(text) {
+  if (isPlanChangeRequest(text)) return { kind: 'planChange', message: PLAN_CHANGE_MESSAGE };
+  if (MEDICAL_PATTERN.test(text)) return { kind: 'medical', message: MEDICAL_MESSAGE };
+  if (PRIVACY_PATTERN.test(text)) return { kind: 'privacy', message: PRIVACY_MESSAGE };
+  return null;
+}

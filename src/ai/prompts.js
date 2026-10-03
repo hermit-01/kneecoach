@@ -18,8 +18,28 @@ Her plan today:
 ${planText(plan)}`;
 }
 
+// Focused instructions for the jobs that aren't questions. A 1B model follows a short,
+// single-purpose instruction far better than the general one.
+export const REWRITE_SYSTEM =
+  'You rewrite exercise instructions in different words for a doctor who has knee osteoarthritis. Keep the same steps in the same order and add nothing: no new advice, warnings or exercises. Use at most 3 short sentences. Medical terms are fine.';
+export const MESSAGE_SYSTEM =
+  'You write one or two warm, encouraging sentences for a doctor doing her knee exercises. Use only the facts given. Do not give advice or change her plan.';
+export const DOCTOR_SYSTEM =
+  'You draft a short clinical note of at most 3 sentences for a treating doctor. Use only the numbers and notes given. Do not add advice, diagnoses or recommendations.';
+
 export function explainRequest(exercise) {
-  return `Explain the "${exercise.name}" exercise differently, in at most 3 sentences, keeping exactly these steps and adding none: ${exercise.steps.join(' ')}`;
+  return `Rewrite the "${exercise.name}" exercise in at most 3 sentences, keeping exactly these steps and adding none. ${exercise.name}: ${exercise.steps.join(' ')}`;
+}
+
+// Every answer is cleaned in code: no formatting symbols, and at most 3 sentences.
+export function tidyAnswer(text, maxSentences = 3) {
+  const plain = text
+    .replace(/\*\*|__|`/g, '')
+    .replace(/^#+\s*/gm, '')
+    .replace(/\s*\n+\s*/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return plain.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, maxSentences).join(' ');
 }
 
 export function roundMessageRequest(f) {

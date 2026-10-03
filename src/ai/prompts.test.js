@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { systemPrompt, planText, checkAnswer, countSentences, explainRequest, roundMessageRequest } from './prompts.js';
+import { systemPrompt, planText, checkAnswer, countSentences, explainRequest, roundMessageRequest, tidyAnswer, REWRITE_SYSTEM, MESSAGE_SYSTEM, DOCTOR_SYSTEM } from './prompts.js';
 import { buildPlan, initialState } from '../rules/planner.js';
 import { exerciseById } from '../rules/exercises.js';
 
@@ -26,5 +26,25 @@ describe('prompts', () => {
     expect(checkAnswer('Hold it for 10 seconds. Then relax.').ok).toBe(true);
     expect(checkAnswer('One. Two. Three. Four.').ok).toBe(false);
     expect(checkAnswer('It runs on your GPU with tokens.').jargon).toEqual(['token', 'gpu']);
+  });
+});
+
+describe('tidyAnswer', () => {
+  it('keeps at most 3 sentences', () => {
+    expect(tidyAnswer('One. Two! Three? Four. Five.')).toBe('One. Two! Three?');
+  });
+  it('removes formatting symbols and line breaks', () => {
+    expect(tidyAnswer('**Best checked** with your\n\ntreating doctor.')).toBe('Best checked with your treating doctor.');
+  });
+});
+
+describe('focused instructions', () => {
+  it('has a rewrite-only instruction for "Explain it differently"', () => {
+    expect(REWRITE_SYSTEM).toMatch(/same steps/);
+    expect(explainRequest(exerciseById('bridge'))).toContain('Bridge:');
+  });
+  it('has message and doctor-note instructions that forbid advice', () => {
+    expect(MESSAGE_SYSTEM).toMatch(/only the facts given/i);
+    expect(DOCTOR_SYSTEM).toMatch(/do not add advice/i);
   });
 });

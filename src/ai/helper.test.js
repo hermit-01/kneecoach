@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ask, prepareHelper, getSnapshot, crashedLastTime, clearCrashFlag } from './helper.js';
 import { RED_FLAG_MESSAGE } from './redflags.js';
-import { PLAN_CHANGE_MESSAGE } from './guards.js';
+import { PLAN_CHANGE_MESSAGE, MEDICAL_MESSAGE, PRIVACY_MESSAGE } from './guards.js';
 
 function memoryStorage(initial = {}) {
   const map = new Map(Object.entries(initial));
@@ -29,5 +29,14 @@ describe('helper', () => {
     expect(getSnapshot().status).toBe('crashed');
     clearCrashFlag(storage);
     expect(crashedLastTime(storage)).toBe(false);
+  });
+});
+
+describe('helper guards', () => {
+  it('answers medicine questions from code', async () => {
+    expect(await ask([], 'Is a steroid injection worth it?')).toEqual({ text: MEDICAL_MESSAGE, medical: true });
+  });
+  it('answers privacy questions from code', async () => {
+    expect(await ask([], 'Is my data sent anywhere?')).toEqual({ text: PRIVACY_MESSAGE, privacy: true });
   });
 });
