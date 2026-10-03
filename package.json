@@ -4,17 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "copy-wasm": "node scripts/copy-wasm.mjs",
     "icons": "node scripts/make-icons.mjs",
-    "predev": "npm run copy-wasm",
     "dev": "vite",
-    "prebuild": "npm run copy-wasm",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run"
   },
   "dependencies": {
-    "@litert-lm/core": "0.17.1",
     "idb": "^8.0.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

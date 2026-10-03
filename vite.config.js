@@ -23,14 +23,13 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg}'],
-        globIgnores: ['litertlm/**'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         runtimeCaching: [
           {
-            // The AI runtime (about 22 MB) is cached the first time the helper loads.
-            urlPattern: ({ url }) => url.pathname.includes('/litertlm/'),
+            // Transformers.js and its ONNX runtime come from jsDelivr (pinned) and are cached for offline use.
+            urlPattern: ({ url }) => url.hostname === 'cdn.jsdelivr.net',
             handler: 'CacheFirst',
-            options: { cacheName: 'litertlm-runtime' },
+            options: { cacheName: 'cdn-runtime', cacheableResponse: { statuses: [0, 200] } },
           },
         ],
       },

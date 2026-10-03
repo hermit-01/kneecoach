@@ -1,6 +1,5 @@
 node_modules
 dist
-public/litertlm
 .superpowers
 *.local
 docs/superpowers
