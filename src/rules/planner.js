@@ -1,6 +1,7 @@
-import { MAX_RUNG } from './ladder.js';
+import { MAX_RUNG, clampRung, rungAt } from './ladder.js';
 import { daysBetween } from './dates.js';
 import { SOURCES } from './sources.js';
+import { EXERCISES, STAGE_UNLOCK_LEVEL } from './exercises.js';
 
 export function initialState() {
   return {
@@ -72,4 +73,47 @@ export function morningCheck(state, answers, ctx) {
   }
 
   return { state: s, decision: { type: 'EXERCISE', seeDoctor, reasons } };
+}
+
+// A day counts as "good" if she did at least one round, every round ended at
+// pain 5/10 or below, and she never tapped "Too painful".
+export function isGoodDay(day) {
+  return day.rounds.length > 0 && day.rounds.every((r) => r.afterPain <= 5 && r.tooPainful.length === 0);
+}
+
+// Spec §5.3 and §5.6.
+export function buildPlan(state, profile, { skipToday = [] } = {}) {
+  const sides = profile.knee === 'both' ? ['left', 'right'] : [profile.knee];
+  return EXERCISES
+    .filter((ex) => state.level >= STAGE_UNLOCK_LEVEL[ex.stage])
+    .filter((ex) => !profile.disabled.includes(ex.id) && !skipToday.includes(ex.id))
+    .map((ex) => {
+      const rung = clampRung(state.level - STAGE_UNLOCK_LEVEL[ex.stage] - (state.penalty[ex.id] ?? 0));
+      const { sets, reps } = rungAt(rung);
+      const holdSeconds = ex.holdGrows ? Math.min(20, 5 + 5 * rung) : ex.holdSeconds;
+      return { exercise: ex, rung, sets, reps, holdSeconds, sides: ex.perSide ? sides : ['both'] };
+    });
+}
+
+// Spec §5.5. result: { afterPain: 0-10, tooPainful: string[] }
+export function afterRound(state, result, today) {
+  const s = { ...state, penalty: { ...state.penalty } };
+  const reasons = [];
+  for (const id of result.tooPainful) s.penalty[id] = (s.penalty[id] ?? 0) + 1;
+  if (result.tooPainful.length > 0) {
+    reasons.push({
+      text: 'Exercises marked "too painful" will be one step easier from tomorrow. Go slower and rest longer between reps.',
+      source: SOURCES.NHS_REDUCE,
+    });
+  }
+  s.lastExerciseDate = today;
+  if (!s.firstExerciseDate) s.firstExerciseDate = today;
+  s.consecutiveRestDays = 0;
+  if (result.afterPain >= 6) {
+    s.level = Math.max(0, s.level - 1);
+    s.streak = 0;
+    reasons.push({ text: `Pain ${result.afterPain}/10 after this round: that's enough for today, and one step down.`, source: SOURCES.NHS_REDUCE });
+    return { state: s, outcome: { type: 'TOO_MUCH', reasons } };
+  }
+  return { state: s, outcome: { type: 'GOOD', reasons } };
 }
