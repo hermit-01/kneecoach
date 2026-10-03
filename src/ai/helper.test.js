@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ask, prepareHelper, getSnapshot, crashedLastTime, clearCrashFlag } from './helper.js';
+import { ask, prepareHelper, getSnapshot, crashedLastTime, clearCrashFlag, isFatalGpuError, reportFatalError } from './helper.js';
 import { RED_FLAG_MESSAGE } from './redflags.js';
 import { PLAN_CHANGE_MESSAGE, MEDICAL_MESSAGE, PRIVACY_MESSAGE } from './guards.js';
 
@@ -38,5 +38,20 @@ describe('helper guards', () => {
   });
   it('answers privacy questions from code', async () => {
     expect(await ask([], 'Is my data sent anywhere?')).toEqual({ text: PRIVACY_MESSAGE, privacy: true });
+  });
+});
+
+describe('fatal graphics errors (review focus 4)', () => {
+  it('recognises the lost-device error seen on the POCO', () => {
+    expect(isFatalGpuError(new Error("Failed to execute 'mapAsync' on 'GPUBuffer': [Device] is lost."))).toBe(true);
+    expect(isFatalGpuError(new Error('failed to call OrtRun(). ERROR_CODE: 1'))).toBe(true);
+    expect(isFatalGpuError(new Error('Network error'))).toBe(false);
+  });
+  it('remembers a fatal error so the helper is not tried again automatically', () => {
+    const storage = memoryStorage();
+    expect(reportFatalError(new Error('[Device] is lost'), storage)).toBe(true);
+    expect(crashedLastTime(storage)).toBe(true);
+    expect(getSnapshot().status).toBe('crashed');
+    expect(reportFatalError(new Error('timeout'), memoryStorage())).toBe(false);
   });
 });

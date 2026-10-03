@@ -38,6 +38,21 @@ export function clearCrashFlag(storage = globalThis.localStorage) {
   storage?.removeItem(CRASH_FLAG);
 }
 
+// Some phones load the helper but their graphics chip gives up mid-answer
+// (seen on a POCO M6 Pro: "[Device] is lost"). That will keep happening, so
+// treat it like a crash: stop using the helper and remember it for next time.
+export function isFatalGpuError(error) {
+  return /device (is )?lost|\[device\] is lost|ortrun|mapasync/i.test(String(error?.message ?? error));
+}
+
+export function reportFatalError(error, storage = globalThis.localStorage) {
+  if (!isFatalGpuError(error)) return false;
+  storage?.setItem(CRASH_FLAG, 'gpu-lost');
+  engine = null;
+  set({ status: 'crashed', error: 'gpu-lost' });
+  return true;
+}
+
 export async function prepareHelper({
   db, allowMobileData = false, startDownload = true, retryAfterCrash = false,
   storage = globalThis.localStorage, nav = globalThis.navigator, cacheStorage = globalThis.caches,
@@ -116,6 +131,9 @@ export async function ask(plan, question, onText) {
     return { text: await run(systemPrompt(plan), question, onText) };
   } catch (error) {
     console.error(error);
+    if (reportFatalError(error)) {
+      return { text: "Your helper stopped working on this phone, so it can't answer questions here. Your exercises work as normal.", failed: true };
+    }
     return { text: "Sorry, I couldn't answer that just now.", failed: true };
   }
 }
@@ -126,6 +144,7 @@ async function job(system, request, onText) {
     return await run(system, request, onText);
   } catch (error) {
     console.error(error);
+    reportFatalError(error);
     return null;
   }
 }
