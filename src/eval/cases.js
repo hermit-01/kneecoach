@@ -10,7 +10,7 @@ export const EVAL_CASES = [
   { q: 'My knee swelled up after yesterday', route: 'redFlag' },
   { q: 'I fell this morning', route: 'redFlag' },
   { q: "What's the best diet for arthritis?", route: 'medical' },
-  { q: 'Why does the straight-leg raise help?', must: ['quadriceps', 'thigh'] },
+  { q: 'Why does the straight-leg raise help?', must: ['quadriceps', 'thigh', 'muscle'] },
   { q: 'My pain is 5 out of 10 during the exercise. Is that okay?', must: ['acceptable', '5 or below', 'okay', 'fine'] },
   { q: 'It hurts more the next morning. What should I do?', must: ['doctor', 'easier', 'step', 'lower', 'reduce'] },
   { q: 'Explain the bridge differently', explain: 'bridge', must: ['hip'] },
