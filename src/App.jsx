@@ -11,6 +11,7 @@ import Player from './screens/Player.jsx';
 import After from './screens/After.jsx';
 import RoundDone from './screens/RoundDone.jsx';
 import Settings from './screens/Settings.jsx';
+import DoctorNote from './screens/DoctorNote.jsx';
 
 // In development only, ?today=YYYY-MM-DD pretends it is another day, for testing multi-day rules.
 function currentDay() {
@@ -50,6 +51,8 @@ export default function App() {
   let body;
   if (tab === 'settings') {
     body = <Settings profile={data.profile} onToggle={async (id, on) => { await setExerciseEnabled(db, id, on); await refresh(); }} />;
+  } else if (tab === 'doctor') {
+    body = <DoctorNote db={db} today={today} state={data.state} todayNotes={data.day.notes} />;
   } else if (round?.stage === 'playing') {
     body = <Player plan={data.plan} onFinish={(result) => setRound({ stage: 'after', result })} />;
   } else if (round?.stage === 'after') {
@@ -70,7 +73,7 @@ export default function App() {
 }
 
 function TabBar({ tab, onChange }) {
-  const tabs = [['today', 'Today'], ['settings', 'Settings']];
+  const tabs = [['today', 'Today'], ['doctor', 'Doctor'], ['settings', 'Settings']];
   return (
     <nav className="tabbar">
       {tabs.map(([id, label]) => (
