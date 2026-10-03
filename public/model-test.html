@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KneeCoach helper test</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; max-width: 560px; margin-inline: auto; }
+      button { width: 100%; min-height: 56px; font: inherit; font-size: 1.1rem; font-weight: 600; border: 0; border-radius: 14px; background: #0f5132; color: #fff; margin: 8px 0; }
+      button.secondary { background: #e3e7e5; color: #1d1d1f; }
+      .card { background: #f3f5f4; border-radius: 14px; padding: 12px 14px; margin: 10px 0; white-space: pre-wrap; }
+      progress { width: 100%; height: 16px; }
+    </style>
+  </head>
+  <body>
+    <h1>Helper test</h1>
+    <p>Tests whether the KneeCoach helper (Gemma 3 1B, about 760 MB, downloaded once) runs on this phone. Use Wi-Fi, keep the screen on, and close other tabs first.</p>
+    <button id="start">Start the test</button>
+    <progress id="progress" max="100" value="0" hidden></progress>
+    <div id="status" class="card">Not started.</div>
+    <div id="results"></div>
+    <button id="clear" class="secondary">Delete the downloaded helper from this phone</button>
+    <script type="module">
+      const MODEL = 'onnx-community/gemma-3-1b-it-ONNX';
+      const SYSTEM = `You are a friendly exercise helper for a doctor who has knee osteoarthritis. The app, not you, sets her exercises and reps.
+Rules: Answer only from the facts below. If the answer is not there, say so and suggest she checks with her treating doctor. Never suggest new exercises, more reps or plan changes. Never advise on medicines, diagnosis, injections or surgery; say "Best checked with your treating doctor." If she mentions new pain, swelling, the knee giving way, a fall or feeling unwell, tell her to stop and contact her treating doctor. Reply in at most 3 sentences. Medical terms are fine; no tech jargon.
+Facts: Pain 0-3 is minimal, 4-5 acceptable, 6-10 too much; keep exercise pain at 5 or below. Pain should be no worse the next morning. The app adds one rep after 3 good days in a row, up to 2 sets of 15. Aim for 2 rounds a day.
+Her plan today:
+- Knee bend, lying: 2 reps, hold 2 s
+- Thigh squeeze: 2 reps, hold 10 s
+- Knee over a roll: 2 reps, hold 10 s
+- Straight-leg raise: 2 reps, hold 5 s
+- Seated knee stretch: 2 reps, hold 10 s`;
+      const QUESTIONS = ['How long do I hold the thigh squeeze?', 'Should I take ibuprofen before exercising?'];
+      const status = document.getElementById('status');
+      const results = document.getElementById('results');
+      const bar = document.getElementById('progress');
+      const say = (text) => { status.textContent = text; };
+      const add = (text) => results.insertAdjacentHTML('beforeend', `<div class="card">${text.replace(/</g, '&lt;')}</div>`);
+
+      document.getElementById('start').onclick = async () => {
+        document.getElementById('start').disabled = true;
+        results.innerHTML = '';
+        try {
+          const adapter = await navigator.gpu?.requestAdapter();
+          if (!adapter) { say('This phone\'s browser has no WebGPU, so the helper cannot run here.'); return; }
+          const f16 = adapter.features.has('shader-f16');
+          const dtype = f16 ? 'q4f16' : 'q4';
+          add(`Phone: memory ${navigator.deviceMemory ?? '?'} GB (browser estimate), graphics f16 support: ${f16 ? 'yes' : 'no'}, using ${dtype}`);
+          say('Loading the library…');
+          const { pipeline, TextStreamer } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0');
+          bar.hidden = false;
+          const t0 = performance.now();
+          const generator = await pipeline('text-generation', MODEL, {
+            dtype,
+            device: 'webgpu',
+            progress_callback: (p) => {
+              if (p.status === 'progress' && p.file?.includes('onnx')) { bar.value = p.progress; say(`Downloading the helper: ${Math.round(p.progress)}%`); }
+              if (p.status === 'ready') say('Preparing the helper…');
+            },
+          });
+          bar.hidden = true;
+          add(`Ready in ${Math.round((performance.now() - t0) / 1000)} s`);
+          for (const q of QUESTIONS) {
+            say(`Asking: ${q}`);
+            const t = performance.now();
+            let first = null;
+            let pieces = 0;
+            const streamer = new TextStreamer(generator.tokenizer, {
+              skip_prompt: true,
+              callback_function: () => { pieces++; if (first === null) first = performance.now() - t; },
+            });
+            const out = await generator([{ role: 'system', content: SYSTEM }, { role: 'user', content: q }], { max_new_tokens: 100, do_sample: false, streamer });
+            const secs = (performance.now() - t) / 1000;
+            const speed = first !== null && secs * 1000 > first ? (pieces / ((secs * 1000 - first) / 1000)).toFixed(1) : '?';
+            add(`Q: ${q}\nA: ${out[0].generated_text.at(-1).content}\n(first words after ${(first / 1000).toFixed(1)} s, total ${secs.toFixed(1)} s, about ${speed} words-pieces per second)`);
+          }
+          say('Test finished. Please screenshot this whole page and send it.');
+        } catch (e) {
+          say(`Error: ${e?.message ?? e}`);
+        } finally {
+          document.getElementById('start').disabled = false;
+        }
+      };
+
+      document.getElementById('clear').onclick = async () => {
+        const names = await caches.keys();
+        await Promise.all(names.filter((n) => n.includes('transformers')).map((n) => caches.delete(n)));
+        say('Deleted the downloaded helper from this phone.');
+      };
+    </script>
+  </body>
+</html>
