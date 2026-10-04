@@ -1,5 +1,5 @@
 import { useHelper } from '../ai/useHelper.js';
-import { prepareHelper } from '../ai/helper.js';
+import { prepareHelper, clearCrashFlag } from '../ai/helper.js';
 
 // Plain words only: she never sees "model", "download size in bytes" or "GPU".
 export default function HelperStatus({ db }) {
@@ -35,10 +35,11 @@ export default function HelperStatus({ db }) {
     case 'no-space':
       return <p className="helper">Your phone needs about 2.5 GB of free space for the helper. Your exercises work as normal without it.</p>;
     case 'crashed':
+      // A fresh page is the only sure way to get a working graphics chip back.
       return (
         <div className="helper">
-          <p>Last time your helper didn't work on this phone (not enough memory or graphics power), so the app is running without it. Your exercises work as normal.</p>
-          <button type="button" className="btn" onClick={() => start({ retryAfterCrash: true })}>Try again</button>
+          <p>Your helper stopped working on this phone, so the app is running without it for now. Your exercises work as normal.</p>
+          <button type="button" className="btn" onClick={() => { clearCrashFlag(); location.reload(); }}>Try again</button>
         </div>
       );
     case 'unavailable':

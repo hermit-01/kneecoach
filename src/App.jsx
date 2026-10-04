@@ -28,7 +28,7 @@ export default function App() {
   const [today, setToday] = useState(currentDay);
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('today');
-  const [round, setRound] = useState(null);
+  const [round, setRound] = useState(null); // null | { stage: 'playing' | 'after' | 'done', ... }
 
   const refresh = useCallback(async () => {
     if (db) setData(await loadToday(db, today));

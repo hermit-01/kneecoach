@@ -47,11 +47,11 @@ describe('fatal graphics errors (review focus 4)', () => {
     expect(isFatalGpuError(new Error('failed to call OrtRun(). ERROR_CODE: 1'))).toBe(true);
     expect(isFatalGpuError(new Error('Network error'))).toBe(false);
   });
-  it('remembers a fatal error so the helper is not tried again automatically', () => {
+  it('switches the helper off for this session only, so a briefly lost graphics chip gets another chance next start', () => {
     const storage = memoryStorage();
     expect(reportFatalError(new Error('[Device] is lost'), storage)).toBe(true);
-    expect(crashedLastTime(storage)).toBe(true);
     expect(getSnapshot().status).toBe('crashed');
+    expect(crashedLastTime(storage)).toBe(false);
     expect(reportFatalError(new Error('timeout'), memoryStorage())).toBe(false);
   });
 });

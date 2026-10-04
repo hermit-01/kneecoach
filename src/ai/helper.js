@@ -2,7 +2,7 @@ import {
   WEIGHTS, weightsUrl, chunkCount, downloadModel, modelBlob, idbChunkStore, ensureModelId, seedCache, isCached, downloadConditions,
 } from './download.js';
 import {
-  systemPrompt, explainRequest, roundMessageRequest, doctorParagraphRequest, tidyAnswer, REWRITE_SYSTEM, MESSAGE_SYSTEM, DOCTOR_SYSTEM,
+  systemPrompt, explainRequest, roundMessageRequest, doctorParagraphRequest, REWRITE_SYSTEM, MESSAGE_SYSTEM, DOCTOR_SYSTEM,
 } from './prompts.js';
 import { hasRedFlag, RED_FLAG_MESSAGE } from './redflags.js';
 import { guardFor } from './guards.js';
@@ -39,15 +39,16 @@ export function clearCrashFlag(storage = globalThis.localStorage) {
 }
 
 // Some phones load the helper but their graphics chip gives up mid-answer
-// (seen on a POCO M6 Pro: "[Device] is lost"). That will keep happening, so
-// treat it like a crash: stop using the helper and remember it for next time.
+// (seen on a POCO M6 Pro: "[Device] is lost"). Stop using the helper for this
+// session only: on Android, switching to another app can also drop the graphics
+// chip on a phone that normally runs the helper fine, so it gets another chance
+// at the next start.
 export function isFatalGpuError(error) {
   return /device (is )?lost|\[device\] is lost|ortrun|mapasync/i.test(String(error?.message ?? error));
 }
 
-export function reportFatalError(error, storage = globalThis.localStorage) {
+export function reportFatalError(error) {
   if (!isFatalGpuError(error)) return false;
-  storage?.setItem(CRASH_FLAG, 'gpu-lost');
   engine = null;
   set({ status: 'crashed', error: 'gpu-lost' });
   return true;
@@ -117,7 +118,7 @@ export async function prepareHelper({
 }
 
 function run(system, user, onText) {
-  const next = queue.then(() => engine.generate(system, user, { onText })).then(tidyAnswer);
+  const next = queue.then(() => engine.generate(system, user, { onText })); // already tidy
   queue = next.catch(() => {});
   return next;
 }
@@ -132,7 +133,7 @@ export async function ask(plan, question, onText) {
   } catch (error) {
     console.error(error);
     if (reportFatalError(error)) {
-      return { text: "Your helper stopped working on this phone, so it can't answer questions here. Your exercises work as normal.", failed: true };
+      return { text: "Your helper stopped working, so I can't answer that right now. Your exercises work as normal.", failed: true };
     }
     return { text: "Sorry, I couldn't answer that just now.", failed: true };
   }

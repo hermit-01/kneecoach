@@ -1,13 +1,18 @@
-// One reply from Gemma: streams text to onText, and stops after timeoutMs (spec §6.3).
+import { sentencesOf, tidyAnswer } from './prompts.js';
+
+// One reply from Gemma: streams tidy text to onText, and stops after timeoutMs (spec §6.3)
+// or as soon as it starts a sentence past maxSentences, which tidyAnswer would cut anyway.
+// On a phone, every extra sentence costs seconds inside the 30 s limit.
 // `tf` is the Transformers.js module, passed in so this can be tested without it.
-export async function generateText({ tf, generator, system, user, onText = () => {}, timeoutMs = 30000, maxNewTokens = 150 }) {
+export async function generateText({ tf, generator, system, user, onText = () => {}, timeoutMs = 30000, maxNewTokens = 150, maxSentences = 3 }) {
   const stopper = new tf.InterruptableStoppingCriteria();
   let text = '';
   const streamer = new tf.TextStreamer(generator.tokenizer, {
     skip_prompt: true,
     callback_function: (piece) => {
       text += piece;
-      onText(text);
+      if (sentencesOf(text).length > maxSentences) stopper.interrupt();
+      onText(tidyAnswer(text, maxSentences));
     },
   });
   const timer = setTimeout(() => stopper.interrupt(), timeoutMs);
@@ -21,5 +26,5 @@ export async function generateText({ tf, generator, system, user, onText = () =>
   } finally {
     clearTimeout(timer);
   }
-  return text.trim();
+  return tidyAnswer(text, maxSentences);
 }

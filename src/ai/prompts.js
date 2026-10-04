@@ -31,15 +31,20 @@ export function explainRequest(exercise) {
   return `Rewrite the "${exercise.name}" exercise in at most 3 sentences, keeping exactly these steps and adding none. ${exercise.name}: ${exercise.steps.join(' ')}`;
 }
 
-// Every answer is cleaned in code: no formatting symbols, and at most 3 sentences.
-export function tidyAnswer(text, maxSentences = 3) {
+// The sentences of an answer, without formatting symbols or line breaks.
+export function sentencesOf(text) {
   const plain = text
     .replace(/\*\*|__|`/g, '')
     .replace(/^#+\s*/gm, '')
     .replace(/\s*\n+\s*/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim();
-  return plain.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, maxSentences).join(' ');
+  return plain.split(/(?<=[.!?])\s+/).filter(Boolean);
+}
+
+// Every answer is cleaned in code: no formatting symbols, and at most 3 sentences.
+export function tidyAnswer(text, maxSentences = 3) {
+  return sentencesOf(text).slice(0, maxSentences).join(' ');
 }
 
 export function roundMessageRequest(f) {
