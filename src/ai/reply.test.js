@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateText } from './reply.js';
+import { generateText, TooSlowError } from './reply.js';
 
 function fakeTf() {
   class InterruptableStoppingCriteria { constructor() { this.interrupted = false; } interrupt() { this.interrupted = true; } }
@@ -40,12 +40,20 @@ describe('generateText', () => {
     expect(seen.some((t) => t.includes('*') || t.includes('Four'))).toBe(false);
     expect(sent).toBe(4); // stopped as soon as a 4th sentence began, so 'Five.' was never generated
   });
-  it('stops a reply that takes too long (review focus 4)', async () => {
+  it('stops a reply that takes too long, and says so instead of showing a fragment (review focus 4)', async () => {
     const generator = (messages, options) => new Promise((resolve) => {
+      options.streamer.options.callback_function('The');
       const check = setInterval(() => { if (options.stopping_criteria.interrupted) { clearInterval(check); resolve(); } }, 5);
     });
     const started = Date.now();
-    expect(await generateText({ tf: fakeTf(), generator, system: 'S', user: 'U', timeoutMs: 20 })).toBe('');
+    await expect(generateText({ tf: fakeTf(), generator, system: 'S', user: 'U', timeoutMs: 20 })).rejects.toThrow(TooSlowError);
     expect(Date.now() - started).toBeLessThan(1000);
+  });
+  it('keeps only the finished sentences when time runs out', async () => {
+    const generator = (messages, options) => new Promise((resolve) => {
+      options.streamer.options.callback_function('Hold it for 10 seconds. Then slowly');
+      const check = setInterval(() => { if (options.stopping_criteria.interrupted) { clearInterval(check); resolve(); } }, 5);
+    });
+    expect(await generateText({ tf: fakeTf(), generator, system: 'S', user: 'U', timeoutMs: 20 })).toBe('Hold it for 10 seconds.');
   });
 });

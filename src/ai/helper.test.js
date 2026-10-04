@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ask, prepareHelper, getSnapshot, crashedLastTime, clearCrashFlag, isFatalGpuError, reportFatalError } from './helper.js';
+import { ask, prepareHelper, getSnapshot, crashedLastTime, clearCrashFlag, isFatalGpuError, reportFatalError, failureReply } from './helper.js';
+import { TooSlowError } from './reply.js';
 import { RED_FLAG_MESSAGE } from './redflags.js';
 import { PLAN_CHANGE_MESSAGE, MEDICAL_MESSAGE, PRIVACY_MESSAGE } from './guards.js';
 
@@ -54,6 +55,19 @@ describe('fatal graphics errors (review focus 4)', () => {
     expect(crashedLastTime(storage)).toBe(false);
     expect(reportFatalError(new Error('timeout'), memoryStorage())).toBe(false);
   });
+});
+
+describe('failureReply', () => {
+  it('tells her plainly when the phone was too slow, without switching the helper off', () => {
+    const reply = failureReply(new TooSlowError());
+    expect(reply).toMatchObject({ failed: true, tooSlow: true });
+    expect(reply.text).toMatch(/took too long/);
+  });
+  it('switches the helper off when the graphics chip is lost', () => {
+    expect(failureReply(new Error('[Device] is lost')).text).toMatch(/stopped working/);
+    expect(getSnapshot().status).toBe('crashed');
+  });
+  it('apologises for anything else', () => expect(failureReply(new Error('x')).text).toMatch(/couldn't answer/));
 });
 
 describe('how-to questions', () => {

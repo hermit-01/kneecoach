@@ -135,9 +135,17 @@ export async function ask(plan, question, onText) {
     return { text: await run(systemPrompt(plan), question, onText) };
   } catch (error) {
     console.error(error);
-    if (reportFatalError(error)) {
-      return { text: "Your helper stopped working, so I can't answer that right now. Your exercises work as normal.", failed: true };
-    }
-    return { text: "Sorry, I couldn't answer that just now.", failed: true };
+    return failureReply(error);
   }
+}
+
+// What she sees when an answer fails.
+export function failureReply(error) {
+  if (reportFatalError(error)) {
+    return { text: "Your helper stopped working, so I can't answer that right now. Your exercises work as normal.", failed: true };
+  }
+  if (error?.name === 'TooSlowError') {
+    return { text: 'Sorry, that took too long on this phone, so I stopped. Your exercises work as normal.', failed: true, tooSlow: true };
+  }
+  return { text: "Sorry, I couldn't answer that just now.", failed: true };
 }

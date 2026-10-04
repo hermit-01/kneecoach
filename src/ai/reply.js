@@ -15,7 +15,8 @@ export async function generateText({ tf, generator, system, user, onText = () =>
       onText(tidyAnswer(text, maxSentences));
     },
   });
-  const timer = setTimeout(() => stopper.interrupt(), timeoutMs);
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; stopper.interrupt(); }, timeoutMs);
   try {
     await generator([{ role: 'system', content: system }, { role: 'user', content: user }], {
       max_new_tokens: maxNewTokens,
@@ -26,5 +27,17 @@ export async function generateText({ tf, generator, system, user, onText = () =>
   } finally {
     clearTimeout(timer);
   }
-  return tidyAnswer(text, maxSentences);
+  if (!timedOut) return tidyAnswer(text, maxSentences);
+  // Out of time: keep the finished sentences. With none, say so rather than show a fragment:
+  // on a slow phone (a POCO M6 Pro took 54 s to read the question) the reply can be one word.
+  const finished = sentencesOf(text).filter((s) => /[.!?]["'”’)]*$/.test(s)).slice(0, maxSentences);
+  if (!finished.length) throw new TooSlowError();
+  return finished.join(' ');
+}
+
+export class TooSlowError extends Error {
+  constructor() {
+    super('The helper took too long on this phone');
+    this.name = 'TooSlowError';
+  }
 }
