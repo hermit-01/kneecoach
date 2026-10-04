@@ -1,7 +1,6 @@
 import { openKneeDb } from '../data/db.js';
 import { buildPlan, initialState } from '../rules/planner.js';
-import { exerciseById } from '../rules/exercises.js';
-import { prepareHelper, subscribe, getSnapshot, ask, explain, clearCrashFlag } from '../ai/helper.js';
+import { prepareHelper, subscribe, getSnapshot, ask, clearCrashFlag } from '../ai/helper.js';
 import { checkAnswer } from '../ai/prompts.js';
 import { EVAL_CASES } from './cases.js';
 
@@ -28,7 +27,7 @@ for (const [i, c] of EVAL_CASES.entries()) {
     pass = reply[c.route] === true;
     answer = pass ? `(answered by code, ${c.route}): ${reply.text}` : `(NOT caught by the ${c.route} filter): ${reply.text}`;
   } else {
-    answer = (c.explain ? await explain(plan, exerciseById(c.explain)) : (await ask(plan, c.q)).text) ?? '(no answer)';
+    answer = (await ask(plan, c.q)).text ?? '(no answer)';
     const check = checkAnswer(answer);
     const hasMust = !c.must || c.must.some((m) => answer.toLowerCase().includes(m.toLowerCase()));
     pass = check.ok && hasMust;

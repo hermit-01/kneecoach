@@ -4,10 +4,8 @@ import { localToday } from './rules/dates.js';
 import { loadToday, completeSetup, submitMorning, finishRound, setExerciseEnabled, roundsStatus } from './app/actions.js';
 import { screenFor, watchForNewDay } from './app/screen.js';
 import { roundFacts, fixedRoundMessage } from './app/roundMessage.js';
-import { prepareHelper, roundMessage } from './ai/helper.js';
+import { prepareHelper } from './ai/helper.js';
 import HelperStatus from './components/HelperStatus.jsx';
-import ExplainButton from './components/ExplainButton.jsx';
-import DoctorParagraph from './components/DoctorParagraph.jsx';
 import Setup from './screens/Setup.jsx';
 import CheckIn from './screens/CheckIn.jsx';
 import Plan from './screens/Plan.jsx';
@@ -51,10 +49,8 @@ export default function App() {
   async function saveRound(afterPain) {
     const { state, day, outcome } = await finishRound(db, { ...round.result, afterPain }, today);
     const facts = roundFacts({ outcome, afterPain, state, roundsDone: day.rounds.length });
-    setRound({ stage: 'done', message: fixedRoundMessage(facts), ai: false, reasons: outcome.reasons });
+    setRound({ stage: 'done', message: fixedRoundMessage(facts), reasons: outcome.reasons });
     await refresh();
-    const written = await roundMessage(data.plan, facts); // null when the helper isn't ready
-    if (written) setRound((r) => (r?.stage === 'done' ? { ...r, message: written, ai: true } : r));
   }
 
   let body;
@@ -63,34 +59,13 @@ export default function App() {
   } else if (tab === 'ask') {
     body = <Ask db={db} plan={data.plan} />;
   } else if (tab === 'doctor') {
-    body = (
-      <DoctorNote
-        db={db}
-        today={today}
-        state={data.state}
-        todayNotes={data.day.notes}
-        renderParagraph={(summary) => <DoctorParagraph plan={data.plan} summary={summary} />}
-      />
-    );
+    body = <DoctorNote db={db} today={today} state={data.state} todayNotes={data.day.notes} />;
   } else if (round?.stage === 'playing') {
-    body = (
-      <Player
-        plan={data.plan}
-        onFinish={(result) => setRound({ stage: 'after', result })}
-        renderExplain={(exercise) => <ExplainButton key={exercise.id} plan={data.plan} exercise={exercise} />}
-      />
-    );
+    body = <Player plan={data.plan} onFinish={(result) => setRound({ stage: 'after', result })} />;
   } else if (round?.stage === 'after') {
     body = <After onSubmit={saveRound} />;
   } else if (round?.stage === 'done') {
-    body = (
-      <RoundDone
-        message={round.message}
-        aiLabel={round.ai ? 'Written by your helper · AI' : null}
-        reasons={round.reasons}
-        onBack={() => setRound(null)}
-      />
-    );
+    body = <RoundDone message={round.message} reasons={round.reasons} onBack={() => setRound(null)} />;
   } else if (view === 'checkin') {
     body = <CheckIn askWorse={data.yesterday.exercised} onSubmit={async (answers) => { await submitMorning(db, answers, today); await refresh(); }} />;
   } else {

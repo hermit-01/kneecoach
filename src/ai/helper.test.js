@@ -55,3 +55,11 @@ describe('fatal graphics errors (review focus 4)', () => {
     expect(reportFatalError(new Error('timeout'), memoryStorage())).toBe(false);
   });
 });
+
+describe('how-to questions', () => {
+  it("answers from the app's steps, without the AI", async () => {
+    const reply = await ask([], 'What is the correct way to do a mini squat?');
+    expect(reply.steps).toBe(true);
+    expect(reply.text).toMatch(/^Mini squat to a chair \(Partial sit-to-stand\): /);
+  });
+});

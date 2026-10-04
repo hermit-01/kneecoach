@@ -1,3 +1,5 @@
+import { exerciseById } from '../rules/exercises.js';
+
 // Requests to change her plan are answered by code, never by Gemma (spec §0 and §6.3):
 // in testing, Gemma 3 1B happily agreed to "20 reps today".
 export const PLAN_CHANGE_PATTERN =
@@ -29,4 +31,38 @@ export function guardFor(text) {
   if (MEDICAL_PATTERN.test(text)) return { kind: 'medical', message: MEDICAL_MESSAGE };
   if (PRIVACY_PATTERN.test(text)) return { kind: 'privacy', message: PRIVACY_MESSAGE };
   return null;
+}
+
+// "How do I do the bridge?" is answered with the app's own written steps, never by Gemma.
+// In testing, Gemma described a mini squat as "bending the knee, squeezing the thigh, and
+// raising the leg", and gave a dose for an exercise that was not yet in her plan.
+const HOW_TO_PATTERN =
+  /\b(how (do|should|can) (i|you) (do|perform)|how to (do|perform)|(right|correct|proper|safe) way to|what are the steps|steps (for|of|to)|instructions for|explain (the|a|an|how)|show me how|technique)\b/i;
+
+// The words she might use for each exercise: the app's name, the clinical name, everyday words.
+const EXERCISE_WORDS = {
+  'heel-slide': ['knee bend', 'heel slide'],
+  'static-quads': ['thigh squeeze', 'static quad', 'quad set'],
+  'knee-roll': ['knee over a roll', 'knee roll', 'inner range quad'],
+  'straight-leg-raise': ['straight leg raise', 'leg raise', 'slr'],
+  'seated-stretch': ['seated knee stretch', 'knee stretch', 'knee extension stretch', 'seated stretch'],
+  bridge: ['bridge'],
+  'mini-squat': ['mini squat', 'squat', 'sit to stand'],
+  'step-up': ['step up'],
+  'single-leg-stand': ['one leg', 'single leg', 'balance'],
+  'step-back': ['step back', 'reverse lunge', 'lunge'],
+};
+const plainWords = (text) => ` ${text.toLowerCase().replace(/[^a-z]+/g, ' ').trim()} `;
+
+export function exerciseAskedAbout(text) {
+  if (!HOW_TO_PATTERN.test(text)) return null;
+  const words = plainWords(text);
+  const id = Object.keys(EXERCISE_WORDS).find((key) =>
+    EXERCISE_WORDS[key].some((w) => words.includes(` ${w} `) || words.includes(` ${w}s `)));
+  return id ? exerciseById(id) : null;
+}
+
+export function stepsAnswer(exercise, plan) {
+  const inPlan = plan.some((item) => item.exercise.id === exercise.id);
+  return `${exercise.name} (${exercise.clinicalName}): ${exercise.steps.join(' ')}${inPlan ? '' : " It is not in today's plan."}`;
 }

@@ -4,7 +4,7 @@ import { addDays } from '../rules/dates.js';
 import { doctorStats, statsSummaryText } from '../stats/doctorStats.js';
 import { saveNotes } from '../app/actions.js';
 
-export default function DoctorNote({ db, today, state, todayNotes, renderParagraph }) {
+export default function DoctorNote({ db, today, state, todayNotes }) {
   const [stats, setStats] = useState(null);
   const [notes, setNotes] = useState(todayNotes);
 
@@ -20,7 +20,6 @@ export default function DoctorNote({ db, today, state, todayNotes, renderParagra
       <PainChart series={stats.series} />
       <p className="muted">Orange: morning pain · Green dashes: highest pain after a round · 0-10 NRS</p>
       <div className="card"><pre className="summary">{text}</pre></div>
-      {renderParagraph?.(text)}
       <h2>Your notes for today</h2>
       <textarea
         rows={3}

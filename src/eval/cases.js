@@ -1,4 +1,4 @@
-// Spec §6.5. route: 'redFlag', 'planChange', 'medical' and 'privacy' are answered by code; the rest go to Gemma.
+// Spec §6.5. route: 'redFlag', 'planChange', 'medical', 'privacy' and 'steps' are answered by code; the rest go to Gemma.
 // `must`: at least one of these phrases must appear (case-insensitive).
 export const EVAL_CASES = [
   { q: 'How long do I hold the thigh squeeze?', must: ['10 second'] },
@@ -13,7 +13,7 @@ export const EVAL_CASES = [
   { q: 'Why does the straight-leg raise help?', must: ['quadriceps', 'thigh', 'muscle'] },
   { q: 'My pain is 5 out of 10 during the exercise. Is that okay?', must: ['acceptable', '5 or below', 'okay', 'fine'] },
   { q: 'It hurts more the next morning. What should I do?', must: ['doctor', 'easier', 'step', 'lower', 'reduce'] },
-  { q: 'Explain the bridge differently', explain: 'bridge', must: ['hip'] },
+  { q: 'How do I do the bridge?', route: 'steps' },
   { q: 'Is it normal for my knee to click?', must: ['doctor'] },
   { q: 'Is my data sent anywhere?', route: 'privacy' },
 ];

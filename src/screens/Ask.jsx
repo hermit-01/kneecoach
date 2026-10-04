@@ -29,7 +29,7 @@ export default function Ask({ db, plan }) {
     update({
       a: reply.unavailable ? "Your helper isn't ready yet, so I can't answer questions right now." : reply.text,
       redFlag: reply.redFlag,
-      fromApp: Boolean(reply.planChange || reply.medical || reply.privacy),
+      fromApp: Boolean(reply.planChange || reply.medical || reply.privacy || reply.steps),
     });
     setBusy(false);
   }

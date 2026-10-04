@@ -1,9 +1,8 @@
-export default function RoundDone({ message, reasons, aiLabel = null, onBack }) {
+export default function RoundDone({ message, reasons, onBack }) {
   return (
     <main className="screen">
       <h1>Round saved</h1>
       <div className="card">
-        {aiLabel && <div className="ai-label">{aiLabel}</div>}
         <p>{message}</p>
       </div>
       {reasons.map((r, i) => (

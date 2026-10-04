@@ -2,11 +2,9 @@ import {
   WEIGHTS, weightsUrl, chunkCount, downloadModel, modelBlob, idbChunkStore, ensureModelId, seedCache, isCached, downloadConditions,
   seedGraph,
 } from './download.js';
-import {
-  systemPrompt, explainRequest, roundMessageRequest, doctorParagraphRequest, REWRITE_SYSTEM, MESSAGE_SYSTEM, DOCTOR_SYSTEM,
-} from './prompts.js';
+import { systemPrompt } from './prompts.js';
 import { hasRedFlag, RED_FLAG_MESSAGE } from './redflags.js';
-import { guardFor } from './guards.js';
+import { guardFor, exerciseAskedAbout, stepsAnswer } from './guards.js';
 
 // One helper for the whole app. Screens read its status through useHelper().
 const CRASH_FLAG = 'kneecoach-helper-loading';
@@ -130,6 +128,8 @@ export async function ask(plan, question, onText) {
   if (hasRedFlag(question)) return { text: RED_FLAG_MESSAGE, redFlag: true };
   const guard = guardFor(question);
   if (guard) return { text: guard.message, [guard.kind]: true };
+  const exercise = exerciseAskedAbout(question);
+  if (exercise) return { text: stepsAnswer(exercise, plan), steps: true };
   if (snapshot.status !== 'ready') return { text: null, unavailable: true };
   try {
     return { text: await run(systemPrompt(plan), question, onText) };
@@ -141,18 +141,3 @@ export async function ask(plan, question, onText) {
     return { text: "Sorry, I couldn't answer that just now.", failed: true };
   }
 }
-
-async function job(system, request, onText) {
-  if (snapshot.status !== 'ready') return null;
-  try {
-    return await run(system, request, onText);
-  } catch (error) {
-    console.error(error);
-    reportFatalError(error);
-    return null;
-  }
-}
-
-export const explain = (plan, exercise, onText) => job(REWRITE_SYSTEM, explainRequest(exercise), onText);
-export const roundMessage = (plan, facts) => job(MESSAGE_SYSTEM, roundMessageRequest(facts));
-export const doctorParagraph = (plan, summary, onText) => job(DOCTOR_SYSTEM, doctorParagraphRequest(summary), onText);

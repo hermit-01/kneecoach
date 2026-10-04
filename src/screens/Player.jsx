@@ -5,7 +5,7 @@ import { doseText } from '../rules/ladder.js';
 import { initialPlayer, playerReducer, position, totalReps } from './playerLogic.js';
 
 // One round: every exercise in today's plan, on each side, for each set and rep.
-export default function Player({ plan, onFinish, renderExplain }) {
+export default function Player({ plan, onFinish }) {
   const [state, dispatch] = useReducer(playerReducer, initialPlayer);
   const [voice, setVoice] = useState(true);
   const item = plan[state.index];
@@ -46,7 +46,6 @@ export default function Player({ plan, onFinish, renderExplain }) {
         {item.holdSeconds ? `, hold ${item.holdSeconds} s` : ''}
       </p>
       <ol>{item.exercise.steps.map((s) => <li key={s}>{s}</li>)}</ol>
-      {renderExplain?.(item.exercise)}
       <p><a href={NHS_URL} target="_blank" rel="noreferrer">Watch the NHS inform exercise videos</a></p>
       {!finished && (
         <div className="card">

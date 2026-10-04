@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { systemPrompt, planText, checkAnswer, countSentences, explainRequest, roundMessageRequest, tidyAnswer, REWRITE_SYSTEM, MESSAGE_SYSTEM, DOCTOR_SYSTEM } from './prompts.js';
+import { systemPrompt, planText, checkAnswer, countSentences, tidyAnswer } from './prompts.js';
 import { buildPlan, initialState } from '../rules/planner.js';
-import { exerciseById } from '../rules/exercises.js';
 
 describe('prompts', () => {
   it('keeps the prompt short and includes the rules and today\'s plan', () => {
@@ -12,15 +11,6 @@ describe('prompts', () => {
     expect(prompt).toContain('She is a doctor: medical terms are fine.');
   });
   it('says when today is a rest day', () => expect(planText([])).toMatch(/rest day/));
-  it('asks for a re-explanation that keeps the exact steps', () => {
-    const req = explainRequest(exerciseById('bridge'));
-    expect(req).toMatch(/adding none/);
-    expect(req).toContain('Push through your feet to lift your hips towards the ceiling.');
-  });
-  it('turns round facts into a request', () => {
-    const req = roundMessageRequest({ afterPain: 4, band: 'acceptable', tooMuch: false, goodDaysInARow: 2, roundsDone: 1, changes: [] });
-    expect(req).toContain('4/10 (acceptable)');
-  });
   it('checks answers for length and tech jargon', () => {
     expect(countSentences('Hold it for 10 seconds. Then relax!')).toBe(2);
     expect(checkAnswer('Hold it for 10 seconds. Then relax.').ok).toBe(true);
@@ -35,16 +25,5 @@ describe('tidyAnswer', () => {
   });
   it('removes formatting symbols and line breaks', () => {
     expect(tidyAnswer('**Best checked** with your\n\ntreating doctor.')).toBe('Best checked with your treating doctor.');
-  });
-});
-
-describe('focused instructions', () => {
-  it('has a rewrite-only instruction for "Explain it differently"', () => {
-    expect(REWRITE_SYSTEM).toMatch(/same steps/);
-    expect(explainRequest(exerciseById('bridge'))).toContain('Bridge:');
-  });
-  it('has message and doctor-note instructions that forbid advice', () => {
-    expect(MESSAGE_SYSTEM).toMatch(/only the facts given/i);
-    expect(DOCTOR_SYSTEM).toMatch(/do not add advice/i);
   });
 });
