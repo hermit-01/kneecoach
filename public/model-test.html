@@ -13,8 +13,8 @@
     </style>
   </head>
   <body>
-    <h1>Helper test</h1>
-    <p>Tests whether the KneeCoach helper (Gemma 3 1B, about 760 MB, downloaded once) runs on this phone. Use Wi-Fi, keep the screen on, and close other tabs first.</p>
+    <h1>Helper test, version 2</h1>
+    <p>Tests whether the KneeCoach helper (Gemma 3 1B, about 800 MB, downloaded once) runs on this phone. Use Wi-Fi, keep the screen on, and close other tabs first.</p>
     <button id="start">Start the test</button>
     <progress id="progress" max="100" value="0" hidden></progress>
     <div id="status" class="card">Not started.</div>
@@ -38,17 +38,50 @@ Her plan today:
       const say = (text) => { status.textContent = text; };
       const add = (text) => results.insertAdjacentHTML('beforeend', `<div class="card">${text.replace(/</g, '&lt;')}</div>`);
 
+      // Version 2 changes one thing. Qualcomm's graphics driver crashes on ONNX Runtime's
+      // "subgroups" matrix maths (onnxruntime-web 1.30 and later; see
+      // https://github.com/musetric/musetric/issues/901). Hiding that optional graphics
+      // feature makes ONNX Runtime use its older matrix maths instead.
+      const usesSubgroups = (name) => String(name).includes('subgroup');
+      function hideSubgroups() {
+        const proto = GPUAdapter.prototype;
+        if (proto.requestDevice.kneecoachPatched) return;
+        const getFeatures = Object.getOwnPropertyDescriptor(proto, 'features').get;
+        Object.defineProperty(proto, 'features', {
+          configurable: true,
+          get() { return new Set([...getFeatures.call(this)].filter((name) => !usesSubgroups(name))); },
+        });
+        const requestDevice = proto.requestDevice;
+        proto.requestDevice = function (descriptor = {}) {
+          const requiredFeatures = [...(descriptor.requiredFeatures ?? [])].filter((name) => !usesSubgroups(name));
+          return requestDevice.call(this, { ...descriptor, requiredFeatures });
+        };
+        proto.requestDevice.kneecoachPatched = true;
+      }
+
+      let stage = 'starting';
       document.getElementById('start').onclick = async () => {
         document.getElementById('start').disabled = true;
         results.innerHTML = '';
         try {
+          stage = 'checking the graphics chip';
           const adapter = await navigator.gpu?.requestAdapter();
           if (!adapter) { say('This phone\'s browser has no WebGPU, so the helper cannot run here.'); return; }
+          const subgroups = [...adapter.features].some(usesSubgroups);
           const f16 = adapter.features.has('shader-f16');
           const dtype = f16 ? 'q4f16' : 'q4';
-          add(`Phone: memory ${navigator.deviceMemory ?? '?'} GB (browser estimate), graphics f16 support: ${f16 ? 'yes' : 'no'}, using ${dtype}`);
+          const info = adapter.info ?? {};
+          const mb = (bytes) => `${Math.round(bytes / 1048576)} MB`;
+          add(`Phone: memory ${navigator.deviceMemory ?? '?'} GB (browser estimate)
+Graphics: ${[info.vendor, info.architecture, info.description].filter(Boolean).join(' ') || 'unknown'}
+f16 support: ${f16 ? 'yes' : 'no'}, using ${dtype}; subgroups: ${subgroups ? 'yes, switched off for this test' : 'no'}
+Limits: buffer ${mb(adapter.limits.maxBufferSize)}, binding ${mb(adapter.limits.maxStorageBufferBindingSize)}`);
+          hideSubgroups();
+
+          stage = 'loading the library';
           say('Loading the library…');
           const { pipeline, TextStreamer } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0');
+          stage = 'loading the helper';
           bar.hidden = false;
           const t0 = performance.now();
           const generator = await pipeline('text-generation', MODEL, {
@@ -61,8 +94,10 @@ Her plan today:
           });
           bar.hidden = true;
           add(`Ready in ${Math.round((performance.now() - t0) / 1000)} s`);
-          for (const q of QUESTIONS) {
-            say(`Asking: ${q}`);
+
+          async function run(label, messages, maxNewTokens) {
+            stage = label;
+            say(`Asking: ${label}`);
             const t = performance.now();
             let first = null;
             let pieces = 0;
@@ -70,14 +105,16 @@ Her plan today:
               skip_prompt: true,
               callback_function: () => { pieces++; if (first === null) first = performance.now() - t; },
             });
-            const out = await generator([{ role: 'system', content: SYSTEM }, { role: 'user', content: q }], { max_new_tokens: 100, do_sample: false, streamer });
+            const out = await generator(messages, { max_new_tokens: maxNewTokens, do_sample: false, streamer });
             const secs = (performance.now() - t) / 1000;
             const speed = first !== null && secs * 1000 > first ? (pieces / ((secs * 1000 - first) / 1000)).toFixed(1) : '?';
-            add(`Q: ${q}\nA: ${out[0].generated_text.at(-1).content}\n(first words after ${(first / 1000).toFixed(1)} s, total ${secs.toFixed(1)} s, about ${speed} words-pieces per second)`);
+            add(`Q: ${label}\nA: ${out[0].generated_text.at(-1).content}\n(first words after ${first === null ? '?' : (first / 1000).toFixed(1)} s, total ${secs.toFixed(1)} s, about ${speed} word-pieces per second)`);
           }
+          await run('Say hello in three words.', [{ role: 'user', content: 'Say hello in three words.' }], 8);
+          for (const q of QUESTIONS) await run(q, [{ role: 'system', content: SYSTEM }, { role: 'user', content: q }], 100);
           say('Test finished. Please screenshot this whole page and send it.');
         } catch (e) {
-          say(`Error: ${e?.message ?? e}`);
+          say(`Error while ${stage}: ${e?.message ?? e}`);
         } finally {
           document.getElementById('start').disabled = false;
         }
