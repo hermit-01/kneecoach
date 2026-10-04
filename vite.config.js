@@ -23,6 +23,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg}'],
+        // The phone test pages must always come from the network: otherwise a phone that
+        // has opened the app gets the app (or an old copy of the test) instead of the test.
+        globIgnores: ['**/model-test.html', '**/eval.html'],
+        navigateFallbackDenylist: [/model-test\.html/, /eval\.html/],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         runtimeCaching: [
           {
