@@ -1,6 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { screenFor, watchForNewDay, estimateMinutes } from './screen.js';
+import { screenFor, watchForNewDay, estimateMinutes, progressText } from './screen.js';
 import { emptyDay } from '../data/db.js';
+import { MAX_RUNG } from '../rules/ladder.js';
+
+describe('progressText', () => {
+  it('shows how close she is to the next step up, and what counts as a good day', () => {
+    const text = progressText({ streak: 1, level: 3 });
+    expect(text).toMatch(/^Good days in a row: 1 of 3\. After 3, the app steps up your reps/);
+    expect(text).toMatch(/pain of 5 or less after every round/);
+  });
+  it('says so when she has reached the top of the programme', () => {
+    expect(progressText({ streak: 0, level: MAX_RUNG })).toMatch(/top of the programme: 2 sets of 15/);
+  });
+});
 
 const day = (over = {}) => ({ ...emptyDay('2026-10-04'), ...over });
 const exercising = day({ morning: { pain: 2 }, decision: { type: 'EXERCISE' } });

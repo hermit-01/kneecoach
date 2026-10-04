@@ -6,7 +6,7 @@ export default function Settings({ profile, onToggle }) {
     <main className="screen">
       <h1>Settings</h1>
       <h2>Exercises</h2>
-      <p className="muted">Switch off any exercise your treating doctor doesn't want you doing. Reps are set automatically.</p>
+      <p className="muted">Switch off any exercise your treating doctor doesn't want you doing. Reps are set automatically: the app steps them up after 3 good days in a row, and down after a worse morning.</p>
       {EXERCISES.map((ex) => (
         <label className="card toggle" key={ex.id}>
           <input type="checkbox" checked={!profile.disabled.includes(ex.id)} onChange={(e) => onToggle(ex.id, e.target.checked)} />

@@ -1,7 +1,7 @@
 import { doseText } from '../rules/ladder.js';
 import { estimateMinutes } from '../app/screen.js';
 
-export default function Plan({ view, decision, plan, rounds, onStart, top = null }) {
+export default function Plan({ view, decision, plan, rounds, onStart, top = null, progress = null }) {
   const banners = (
     <>
       {decision.seeDoctor && <div className="banner">Please talk to your treating doctor about your knee.</div>}
@@ -52,6 +52,7 @@ export default function Plan({ view, decision, plan, rounds, onStart, top = null
           </div>
         </div>
       ))}
+      {progress && <p className="muted">{progress}</p>}
       {reasons}
       <p className="muted">
         {rounds.done >= rounds.target

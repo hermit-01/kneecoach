@@ -1,3 +1,12 @@
+import { MAX_RUNG } from '../rules/ladder.js';
+
+// The Today screen's line about the next step up (spec §5.4: three good days in a row),
+// so she can see that her reps grow on their own.
+export function progressText({ streak, level }) {
+  if (level >= MAX_RUNG) return "You're at the top of the programme: 2 sets of 15.";
+  return `Good days in a row: ${streak} of 3. After 3, the app steps up your reps. A good day means pain of 5 or less after every round, and your knee no worse the next morning.`;
+}
+
 // Which screen the Today tab shows. Pure, so it can be tested.
 export function screenFor({ profile, day, plan }) {
   if (!profile) return 'setup';

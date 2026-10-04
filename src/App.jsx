@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { openKneeDb } from './data/db.js';
 import { localToday } from './rules/dates.js';
 import { loadToday, completeSetup, submitMorning, finishRound, setExerciseEnabled, roundsStatus } from './app/actions.js';
-import { screenFor, watchForNewDay } from './app/screen.js';
+import { screenFor, watchForNewDay, progressText } from './app/screen.js';
 import { roundFacts, fixedRoundMessage } from './app/roundMessage.js';
 import { prepareHelper } from './ai/helper.js';
 import HelperStatus from './components/HelperStatus.jsx';
@@ -75,6 +75,7 @@ export default function App() {
         decision={data.day.decision}
         plan={data.plan}
         rounds={roundsStatus(data.day)}
+        progress={progressText(data.state)}
         onStart={() => setRound({ stage: 'playing' })}
         top={<HelperStatus db={db} />}
       />
