@@ -42,6 +42,8 @@ export default function HelperStatus({ db }) {
           <button type="button" className="btn" onClick={() => { clearCrashFlag(); location.reload(); }}>Try again</button>
         </div>
       );
+    case 'off':
+      return <p className="helper">Your helper is switched off on this phone. Your exercises work as normal.</p>;
     case 'unavailable':
       return <p className="helper">Your helper isn't available on this phone yet. Your exercises work as normal.</p>;
     default:

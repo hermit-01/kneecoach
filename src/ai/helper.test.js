@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ask, prepareHelper, getSnapshot, crashedLastTime, clearCrashFlag, isFatalGpuError, reportFatalError, failureReply } from './helper.js';
+import { ask, prepareHelper, getSnapshot, crashedLastTime, clearCrashFlag, isFatalGpuError, reportFatalError, failureReply, switchHelper, helperSwitchedOff, helperSwitchParam } from './helper.js';
 import { TooSlowError } from './reply.js';
 import { RED_FLAG_MESSAGE } from './redflags.js';
 import { PLAN_CHANGE_MESSAGE, MEDICAL_MESSAGE, PRIVACY_MESSAGE } from './guards.js';
@@ -75,5 +75,29 @@ describe('how-to questions', () => {
     const reply = await ask([], 'What is the correct way to do a mini squat?');
     expect(reply.steps).toBe(true);
     expect(reply.text).toMatch(/^Mini squat to a chair \(Partial sit-to-stand\): /);
+  });
+});
+
+describe('switching the helper off on one phone (her S23 switched itself off while it answered)', () => {
+  it('never touches the graphics chip once switched off', async () => {
+    const storage = memoryStorage({ 'kneecoach-helper-off': '1' });
+    const nav = { gpu: { requestAdapter: () => { throw new Error('must not be called'); } } };
+    await prepareHelper({ db: null, nav, storage });
+    expect(getSnapshot().status).toBe('off');
+  });
+  it('deletes the download and remembers the choice, and can be switched back on', async () => {
+    const storage = memoryStorage();
+    const deleted = [];
+    await switchHelper(false, { storage, cacheStorage: { delete: async (name) => { deleted.push(name); return true; } } });
+    expect(deleted).toEqual(['transformers-cache']);
+    expect(helperSwitchedOff(storage)).toBe(true);
+    expect(getSnapshot().status).toBe('off');
+    await switchHelper(true, { storage });
+    expect(helperSwitchedOff(storage)).toBe(false);
+  });
+  it('reads the switch from the link', () => {
+    expect(helperSwitchParam('?helper=off')).toBe('off');
+    expect(helperSwitchParam('?helper=on')).toBe('on');
+    expect(helperSwitchParam('?today=2026-10-05')).toBeNull();
   });
 });

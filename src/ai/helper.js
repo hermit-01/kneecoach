@@ -1,6 +1,6 @@
 import {
   WEIGHTS, weightsUrl, chunkCount, downloadModel, modelBlob, idbChunkStore, ensureModelId, seedCache, isCached, downloadConditions,
-  seedGraph,
+  seedGraph, CACHE_NAME,
 } from './download.js';
 import { systemPrompt } from './prompts.js';
 import { hasRedFlag, RED_FLAG_MESSAGE } from './redflags.js';
@@ -53,11 +53,40 @@ export function reportFatalError(error) {
   return true;
 }
 
+// Some phones can't take the helper's work at all: her Galaxy S23 switched itself off while
+// the helper answered. Opening the app with ?helper=off switches it off on that phone for good
+// and deletes the 800 MB download; ?helper=on brings it back.
+const OFF_FLAG = 'kneecoach-helper-off';
+
+export function helperSwitchedOff(storage = globalThis.localStorage) {
+  return storage?.getItem(OFF_FLAG) === '1';
+}
+
+export function helperSwitchParam(search) {
+  const value = new URLSearchParams(search).get('helper');
+  return value === 'on' || value === 'off' ? value : null;
+}
+
+export async function switchHelper(on, { storage = globalThis.localStorage, cacheStorage = globalThis.caches } = {}) {
+  if (on) {
+    storage?.removeItem(OFF_FLAG);
+    return;
+  }
+  storage?.setItem(OFF_FLAG, '1');
+  engine = null;
+  set({ status: 'off', error: null });
+  await cacheStorage?.delete(CACHE_NAME);
+}
+
 export async function prepareHelper({
   db, allowMobileData = false, startDownload = true, retryAfterCrash = false,
   storage = globalThis.localStorage, nav = globalThis.navigator, cacheStorage = globalThis.caches,
   graphBase = import.meta.env.BASE_URL,
 } = {}) {
+  if (helperSwitchedOff(storage)) {
+    set({ status: 'off' });
+    return;
+  }
   if (['downloading', 'loading', 'ready'].includes(snapshot.status)) return;
   try {
     if (!nav?.gpu) {
