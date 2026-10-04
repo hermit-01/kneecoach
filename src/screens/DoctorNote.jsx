@@ -1,19 +1,45 @@
-import { useEffect, useState } from 'react';
-import { getDaysBetween } from '../data/db.js';
-import { addDays } from '../rules/dates.js';
-import { doctorStats, statsSummaryText } from '../stats/doctorStats.js';
-import { saveNotes } from '../app/actions.js';
+import { useEffect, useRef, useState } from 'react';
+import { statsSummaryText, withTodayNote } from '../stats/doctorStats.js';
+import { saveNotes, loadDoctorNote } from '../app/actions.js';
 
-export default function DoctorNote({ db, today, state, todayNotes }) {
+export default function DoctorNote({ db, today, state }) {
   const [stats, setStats] = useState(null);
-  const [notes, setNotes] = useState(todayNotes);
+  const [notes, setNotes] = useState('');
+  const pending = useRef(null); // note text not saved yet
+  const timer = useRef(null);
 
+  // Her notes come from storage every time the tab opens, never from a copy held by the app.
   useEffect(() => {
-    getDaysBetween(db, addDays(today, -13), today).then((days) => setStats(doctorStats(days, today)));
+    loadDoctorNote(db, today).then(({ stats: loaded, todayNotes }) => {
+      setStats(loaded);
+      setNotes(todayNotes);
+    });
+  }, [db, today]);
+
+  // Save as she types, and at once if she leaves the tab or switches apps.
+  function flush() {
+    clearTimeout(timer.current);
+    if (pending.current === null) return;
+    saveNotes(db, today, pending.current);
+    pending.current = null;
+  }
+  function changeNotes(text) {
+    setNotes(text);
+    pending.current = text;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(flush, 500);
+  }
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === 'hidden') flush(); };
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      flush();
+    };
   }, [db, today]);
 
   if (!stats) return <main className="screen"><p>Loading…</p></main>;
-  const text = statsSummaryText(stats, state);
+  const text = statsSummaryText(withTodayNote(stats, today, notes), state);
   return (
     <main className="screen">
       <h1>For your doctor</h1>
@@ -24,8 +50,8 @@ export default function DoctorNote({ db, today, state, todayNotes }) {
       <textarea
         rows={3}
         value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        onBlur={() => saveNotes(db, today, notes)}
+        onChange={(e) => changeNotes(e.target.value)}
+        onBlur={flush}
         placeholder="For example: stiff after the stairs"
       />
       <div className="row">

@@ -1,6 +1,7 @@
 import { addDays } from '../rules/dates.js';
 import { morningCheck, afterRound, buildPlan, isGoodDay } from '../rules/planner.js';
 import { sixWeekCheck } from '../rules/sixWeek.js';
+import { doctorStats } from '../stats/doctorStats.js';
 import { getDay, saveDay, getPlanState, savePlanState, getProfile, saveProfile, getDaysBetween } from '../data/db.js';
 
 // Glue between the screens, the rules and storage. Each function loads what it
@@ -69,4 +70,11 @@ export function roundsStatus(day) {
     target: 2,
     canStartAnother: !day.rounds.some((r) => r.afterPain >= 6),
   };
+}
+
+// The Doctor tab reads her notes straight from storage each time it opens: a copy held
+// by the app went stale between tabs, and tapping out of the box then overwrote her note.
+export async function loadDoctorNote(db, today) {
+  const days = await getDaysBetween(db, addDays(today, -13), today);
+  return { stats: doctorStats(days, today), todayNotes: days.find((d) => d.date === today)?.notes ?? '' };
 }

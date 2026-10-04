@@ -72,7 +72,7 @@ export default function App() {
   } else if (tab === 'ask') {
     body = <Ask db={db} plan={data.plan} />;
   } else if (tab === 'doctor') {
-    body = <DoctorNote db={db} today={today} state={data.state} todayNotes={data.day.notes} />;
+    body = <DoctorNote db={db} today={today} state={data.state} />;
   } else if (round?.stage === 'playing') {
     body = <Player plan={data.plan} onFinish={(result) => setRound({ stage: 'after', result })} />;
   } else if (round?.stage === 'after') {

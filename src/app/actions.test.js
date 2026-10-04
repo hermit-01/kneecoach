@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { openKneeDb, getPlanState, saveDay, emptyDay, savePlanState, getDay } from '../data/db.js';
 import { initialState } from '../rules/planner.js';
 import { addDays } from '../rules/dates.js';
-import { loadToday, completeSetup, submitMorning, finishRound, setExerciseEnabled, saveNotes, roundsStatus } from './actions.js';
+import { loadToday, completeSetup, submitMorning, finishRound, setExerciseEnabled, saveNotes, roundsStatus, loadDoctorNote } from './actions.js';
 
 let db;
 let n = 0;
@@ -64,5 +64,19 @@ describe('actions', () => {
     }
     const { decision } = await submitMorning(db, calm, addDays(first, 42));
     expect(decision.sixWeekMessage).toBe(true);
+  });
+});
+
+describe('loadDoctorNote (final review: notes went stale between tabs)', () => {
+  it('reads her notes for today fresh from storage, with the numbers', async () => {
+    await saveNotes(db, '2026-10-04', 'Stiff after the stairs');
+    const { stats, todayNotes } = await loadDoctorNote(db, '2026-10-04');
+    expect(todayNotes).toBe('Stiff after the stairs');
+    expect(stats.to).toBe('2026-10-04');
+    await saveNotes(db, '2026-10-04', 'Better today');
+    expect((await loadDoctorNote(db, '2026-10-04')).todayNotes).toBe('Better today');
+  });
+  it('has an empty note on a day without one', async () => {
+    expect((await loadDoctorNote(db, '2026-10-05')).todayNotes).toBe('');
   });
 });

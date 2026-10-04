@@ -44,3 +44,11 @@ export function statsSummaryText(stats, state) {
   for (const n of stats.notes) lines.push(`Note (${n.date}): ${n.text}`);
   return lines.join('\n');
 }
+
+// The summary she shares or prints must include the note she is typing right now,
+// not only the copy saved when the tab opened.
+export function withTodayNote(stats, today, text) {
+  const notes = stats.notes.filter((n) => n.date !== today);
+  if (text.trim()) notes.push({ date: today, text: text.trim() });
+  return { ...stats, notes };
+}

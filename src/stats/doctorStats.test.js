@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { doctorStats, statsSummaryText } from './doctorStats.js';
+import { doctorStats, statsSummaryText, withTodayNote } from './doctorStats.js';
 import { emptyDay } from '../data/db.js';
 import { initialState } from '../rules/planner.js';
 
@@ -29,5 +29,15 @@ describe('doctorStats', () => {
     expect(text).toContain('Morning pain (0-10 NRS): first 5, latest 3, average 5.');
     expect(text).toContain('Current dose (first exercises): 4 reps.');
     expect(text).toContain('Note (2026-10-03): Stiff after stairs');
+  });
+});
+
+describe('withTodayNote (final review: the shared summary missed the note she had just typed)', () => {
+  const base = { notes: [{ date: '2026-10-02', text: 'Stiff' }, { date: '2026-10-03', text: 'old note' }] };
+  it('puts the note she is typing into the summary, replacing the saved one for today', () => {
+    expect(withTodayNote(base, '2026-10-03', 'new note').notes).toEqual([{ date: '2026-10-02', text: 'Stiff' }, { date: '2026-10-03', text: 'new note' }]);
+  });
+  it('drops today when she clears the note, and keeps other days', () => {
+    expect(withTodayNote(base, '2026-10-03', '   ').notes).toEqual([{ date: '2026-10-02', text: 'Stiff' }]);
   });
 });
