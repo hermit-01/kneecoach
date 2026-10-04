@@ -53,7 +53,7 @@ export function reportFatalError(error) {
   return true;
 }
 
-// Some phones can't take the helper's work at all: her Galaxy S23 switched itself off while
+// Some phones can't take the helper's work at all: one test phone switched itself off while
 // the helper answered. Opening the app with ?helper=off switches it off on that phone for good
 // and deletes the 800 MB download; ?helper=on brings it back.
 const OFF_FLAG = 'kneecoach-helper-off';

@@ -8,7 +8,8 @@ describe('prompts', () => {
     expect(prompt.length).toBeLessThan(2000);
     expect(prompt).toContain('- Thigh squeeze: 2 reps, hold 10 s');
     expect(prompt).toContain('Best checked with your treating doctor.');
-    expect(prompt).toContain('She is a doctor: medical terms are fine.');
+    expect(prompt).toContain('Medical terms are fine.');
+    expect(prompt).not.toMatch(/doctor who|is a doctor/);
   });
   it('says when today is a rest day', () => expect(planText([])).toMatch(/rest day/));
   it('checks answers for length and tech jargon', () => {

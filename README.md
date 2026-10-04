@@ -1,6 +1,6 @@
 # KneeCoach
 
-A daily knee-osteoarthritis exercise app I built for my mom, with a private AI helper (Gemma 3 1B, Google's open model) that runs on her phone.
+A daily knee-osteoarthritis exercise app I built for my mom, with a private AI helper (Gemma 3 1B, Google's open model) that runs on the phone.
 
 - **Exercises and rules:** based on the [NHS inform programme for knee osteoarthritis](https://www.nhsinform.scot/illnesses-and-conditions/muscle-bone-and-joints/leg-and-foot-problems-and-conditions/exercises-for-osteoarthritis-of-the-knee/). The exercise text is written in our own words. KneeCoach is not affiliated with the NHS.
 - **Safety:** plain, tested code decides her daily plan from her pain scores. The AI only answers her questions about the exercises. New pain, a fall, medicines, plan changes and "how do I do this exercise?" get fixed answers from code, never from the AI. In testing, the AI made things up when asked to re-explain an exercise, write encouragement or draft a note for her doctor, so it does none of those.

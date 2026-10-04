@@ -1,6 +1,6 @@
 // Keeps the phone's screen on while something long runs: the helper's download and loading,
-// an answer, or a round of exercises. Once the screen locks, Chrome pauses the page; on her
-// S23 that stopped the helper test partway through. Each user holds it by name, and the
+// an answer, or a round of exercises. Once the screen locks, Chrome pauses the page, which can
+// stop the helper partway through. Each user holds it by name, and the
 // screen may sleep again once nobody holds it.
 export function createScreenKeeper(nav = globalThis.navigator, doc = globalThis.document) {
   const holders = new Set();

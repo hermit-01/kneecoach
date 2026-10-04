@@ -22,7 +22,7 @@
     <button id="clear" class="secondary">Delete the downloaded helper from this phone</button>
     <script type="module">
       const MODEL = 'onnx-community/gemma-3-1b-it-ONNX';
-      const SYSTEM = `You are a friendly exercise helper for a doctor who has knee osteoarthritis. The app, not you, sets her exercises and reps.
+      const SYSTEM = `You are a friendly exercise helper for someone doing exercises for knee osteoarthritis. The app, not you, sets her exercises and reps.
 Rules: Answer only from the facts below. If the answer is not there, say so and suggest she checks with her treating doctor. Never suggest new exercises, more reps or plan changes. Never advise on medicines, diagnosis, injections or surgery; say "Best checked with your treating doctor." If she mentions new pain, swelling, the knee giving way, a fall or feeling unwell, tell her to stop and contact her treating doctor. Reply in at most 3 sentences. Medical terms are fine; no tech jargon.
 Facts: Pain 0-3 is minimal, 4-5 acceptable, 6-10 too much; keep exercise pain at 5 or below. Pain should be no worse the next morning. The app adds one rep after 3 good days in a row, up to 2 sets of 15. Aim for 2 rounds a day.
 Her plan today:
@@ -71,7 +71,7 @@ Her plan today:
         await cache.put(`https://huggingface.co/${MODEL}/resolve/main/onnx/model_${dtype}.onnx`, response);
       }
 
-      // Version 4: on her S23 the phone "turned off" partway through. Chrome pauses a page once
+      // Version 4: on one test phone, the phone "turned off" partway through. Chrome pauses a page once
       // the screen locks, so keep the screen awake while the test runs and count any time it went off.
       let wakeLock = null;
       let screenOffCount = 0;

@@ -78,7 +78,7 @@ describe('how-to questions', () => {
   });
 });
 
-describe('switching the helper off on one phone (her S23 switched itself off while it answered)', () => {
+describe('switching the helper off on one phone (a test phone switched itself off while it answered)', () => {
   it('never touches the graphics chip once switched off', async () => {
     const storage = memoryStorage({ 'kneecoach-helper-off': '1' });
     const nav = { gpu: { requestAdapter: () => { throw new Error('must not be called'); } } };
