@@ -1,5 +1,6 @@
 import {
   WEIGHTS, weightsUrl, chunkCount, downloadModel, modelBlob, idbChunkStore, ensureModelId, seedCache, isCached, downloadConditions,
+  seedGraph,
 } from './download.js';
 import {
   systemPrompt, explainRequest, roundMessageRequest, doctorParagraphRequest, REWRITE_SYSTEM, MESSAGE_SYSTEM, DOCTOR_SYSTEM,
@@ -57,6 +58,7 @@ export function reportFatalError(error) {
 export async function prepareHelper({
   db, allowMobileData = false, startDownload = true, retryAfterCrash = false,
   storage = globalThis.localStorage, nav = globalThis.navigator, cacheStorage = globalThis.caches,
+  graphBase = import.meta.env.BASE_URL,
 } = {}) {
   if (['downloading', 'loading', 'ready'].includes(snapshot.status)) return;
   try {
@@ -104,6 +106,7 @@ export async function prepareHelper({
       await seedCache(cacheStorage, url, await modelBlob(store, bytes));
       await store.clear();
     }
+    await seedGraph({ cacheStorage, dtype, base: graphBase }); // the graph that scores only the last position
     set({ status: 'loading' });
     storage?.setItem(CRASH_FLAG, String(Date.now()));
     const { createEngine } = await import('./engine.js'); // loaded only when needed

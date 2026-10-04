@@ -83,3 +83,25 @@ export async function downloadConditions(nav = navigator) {
   const persisted = (await nav.storage?.persist?.()) ?? false;
   return { onMobileData, freeBytes, enoughSpace: freeBytes >= 2.5e9, persisted };
 }
+
+// The app swaps the model's small graph file for one that scores only the last prompt
+// position (scripts/last-logits.py, public/models/gemma-3-1b-it-last-logits/NOTICE.md).
+// The original scores every position against the 262,144-word vocabulary, which killed
+// the graphics chip on Qualcomm phones. Transformers.js reads its cache first, under the
+// Hugging Face address, so the edited graph goes there. The marker lets later starts skip
+// the download, so the helper still starts offline.
+export const GRAPH_MARKER = 'last-logits-1';
+export const graphUrl = (dtype) => weightsUrl(`onnx/model_${dtype}.onnx`);
+
+export async function seedGraph({ cacheStorage, dtype, base, fetchImpl = fetch }) {
+  const cache = await cacheStorage.open(CACHE_NAME);
+  const url = graphUrl(dtype);
+  if ((await cache.match(url))?.headers.get('X-KneeCoach-Graph') === GRAPH_MARKER) return false;
+  const response = await fetchImpl(`${base}models/gemma-3-1b-it-last-logits/model_${dtype}.onnx`);
+  if (!response.ok) throw new Error(`The edited graph did not download (HTTP ${response.status})`);
+  const blob = await response.blob();
+  await cache.put(url, new Response(blob, {
+    headers: { 'Content-Type': 'application/octet-stream', 'Content-Length': String(blob.size), 'X-KneeCoach-Graph': GRAPH_MARKER },
+  }));
+  return true;
+}

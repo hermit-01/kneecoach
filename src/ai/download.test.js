@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect } from 'vitest';
 import {
   downloadModel, modelBlob, downloadConditions, ensureModelId, idbChunkStore, seedCache, isCached,
-  WEIGHTS, CHUNK_BYTES, chunkCount, weightsUrl, CACHE_NAME,
+  WEIGHTS, CHUNK_BYTES, chunkCount, weightsUrl, CACHE_NAME, seedGraph, graphUrl, GRAPH_MARKER,
 } from './download.js';
 import { openKneeDb } from '../data/db.js';
 
@@ -132,5 +132,38 @@ describe('downloadConditions', () => {
   it('copes with browsers that hide the connection type', async () => {
     const nav = { storage: { estimate: async () => ({ quota: 1e9, usage: 0 }), persist: async () => false } };
     expect(await downloadConditions(nav)).toMatchObject({ onMobileData: false, enoughSpace: false });
+  });
+});
+
+describe('seedGraph', () => {
+  function fakeCacheStorage() {
+    const entries = new Map();
+    const cache = { put: async (u, r) => { entries.set(u, r); }, match: async (u) => entries.get(u) };
+    return { open: async () => cache };
+  }
+  it('puts the edited graph where Transformers.js looks first, marked as ours', async () => {
+    const cacheStorage = fakeCacheStorage();
+    const fetched = [];
+    const fetchImpl = async (u) => { fetched.push(u); return new Response('edited graph'); };
+    expect(await seedGraph({ cacheStorage, dtype: 'q4', base: '/kneecoach/', fetchImpl })).toBe(true);
+    expect(fetched).toEqual(['/kneecoach/models/gemma-3-1b-it-last-logits/model_q4.onnx']);
+    expect(graphUrl('q4')).toBe('https://huggingface.co/onnx-community/gemma-3-1b-it-ONNX/resolve/main/onnx/model_q4.onnx');
+    const cached = await (await cacheStorage.open(CACHE_NAME)).match(graphUrl('q4'));
+    expect(cached.headers.get('X-KneeCoach-Graph')).toBe(GRAPH_MARKER);
+    expect(await cached.text()).toBe('edited graph');
+  });
+  it('replaces an original graph cached earlier, then skips the download so it starts offline', async () => {
+    const cacheStorage = fakeCacheStorage();
+    await (await cacheStorage.open(CACHE_NAME)).put(graphUrl('q4f16'), new Response('original graph'));
+    let fetches = 0;
+    const fetchImpl = async () => { fetches += 1; return new Response('edited graph'); };
+    expect(await seedGraph({ cacheStorage, dtype: 'q4f16', base: '/', fetchImpl })).toBe(true);
+    expect(await seedGraph({ cacheStorage, dtype: 'q4f16', base: '/', fetchImpl })).toBe(false);
+    expect(fetches).toBe(1);
+    expect(await (await (await cacheStorage.open(CACHE_NAME)).match(graphUrl('q4f16'))).text()).toBe('edited graph');
+  });
+  it('fails loudly instead of letting the original graph load', async () => {
+    const fetchImpl = async () => new Response('missing', { status: 404 });
+    await expect(seedGraph({ cacheStorage: fakeCacheStorage(), dtype: 'q4', base: '/', fetchImpl })).rejects.toThrow(/404/);
   });
 });
