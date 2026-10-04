@@ -5,6 +5,8 @@ import { loadToday, completeSetup, submitMorning, finishRound, setExerciseEnable
 import { screenFor, watchForNewDay, progressText } from './app/screen.js';
 import { roundFacts, fixedRoundMessage } from './app/roundMessage.js';
 import { prepareHelper } from './ai/helper.js';
+import { useHelper } from './ai/useHelper.js';
+import { screenKeeper } from './lib/wakeLock.js';
 import HelperStatus from './components/HelperStatus.jsx';
 import Setup from './screens/Setup.jsx';
 import CheckIn from './screens/CheckIn.jsx';
@@ -27,6 +29,7 @@ export default function App() {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('today');
   const [round, setRound] = useState(null); // null | { stage: 'playing' | 'after' | 'done', ... }
+  const helper = useHelper();
 
   const refresh = useCallback(async () => {
     if (db) setData(await loadToday(db, today));
@@ -35,6 +38,16 @@ export default function App() {
   useEffect(() => { refresh(); }, [refresh]);
   // Load the helper if it's already downloaded; never start an 800 MB download without her tap.
   useEffect(() => { if (db) prepareHelper({ db, startDownload: false }); }, [db]);
+  // Keep the screen awake while the helper downloads or loads, and during a round:
+  // when the screen locks, Chrome pauses the page.
+  useEffect(() => {
+    if (['downloading', 'loading'].includes(helper.status)) screenKeeper.hold('helper');
+    else screenKeeper.release('helper');
+  }, [helper.status]);
+  useEffect(() => {
+    if (round?.stage === 'playing') screenKeeper.hold('round');
+    else screenKeeper.release('round');
+  }, [round?.stage]);
   useEffect(
     () => watchForNewDay({ getToday: currentDay, shownDay: today, onNewDay: (d) => { setRound(null); setToday(d); } }),
     [today],

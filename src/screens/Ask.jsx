@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ask } from '../ai/helper.js';
+import { screenKeeper } from '../lib/wakeLock.js';
 import { useHelper } from '../ai/useHelper.js';
 import { NHS_URL } from '../rules/exercises.js';
 import HelperStatus from '../components/HelperStatus.jsx';
@@ -25,7 +26,13 @@ export default function Ask({ db, plan }) {
     const index = thread.length;
     const update = (patch) => setThread((t) => t.map((m, i) => (i === index ? { ...m, ...patch } : m)));
     setThread((t) => [...t, { q, a: '' }]);
-    const reply = await ask(plan, q, (text) => update({ a: text }));
+    screenKeeper.hold('answer'); // an answer can take a while; don't let the screen lock
+    let reply;
+    try {
+      reply = await ask(plan, q, (text) => update({ a: text }));
+    } finally {
+      screenKeeper.release('answer');
+    }
     update({
       a: reply.unavailable ? "Your helper isn't ready yet, so I can't answer questions right now." : reply.text,
       redFlag: reply.redFlag,
