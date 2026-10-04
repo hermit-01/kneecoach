@@ -13,7 +13,7 @@
     </style>
   </head>
   <body>
-    <h1>Helper test, version 3</h1>
+    <h1>Helper test, version 4</h1>
     <p>Tests whether the KneeCoach helper (Gemma 3 1B, about 800 MB, downloaded once) runs on this phone. Use Wi-Fi, keep the screen on, and close other tabs first.</p>
     <button id="start">Start the test</button>
     <progress id="progress" max="100" value="0" hidden></progress>
@@ -71,10 +71,29 @@ Her plan today:
         await cache.put(`https://huggingface.co/${MODEL}/resolve/main/onnx/model_${dtype}.onnx`, response);
       }
 
+      // Version 4: on her S23 the phone "turned off" partway through. Chrome pauses a page once
+      // the screen locks, so keep the screen awake while the test runs and count any time it went off.
+      let wakeLock = null;
+      let screenOffCount = 0;
+      let running = false;
+      async function keepScreenOn() {
+        try { wakeLock = await navigator.wakeLock.request('screen'); } catch { wakeLock = null; }
+      }
+      document.addEventListener('visibilitychange', () => {
+        if (!running) return;
+        if (document.hidden) screenOffCount += 1;
+        else keepScreenOn();
+      });
+      const screenNote = () => (screenOffCount ? `\nThe screen went off ${screenOffCount} time(s) during the test.` : '');
+
       let stage = 'starting';
       document.getElementById('start').onclick = async () => {
         document.getElementById('start').disabled = true;
         results.innerHTML = '';
+        running = true;
+        screenOffCount = 0;
+        await keepScreenOn();
+        add(`Screen kept on during the test: ${wakeLock ? 'yes' : 'no, so please tap the screen every few seconds'}`);
         try {
           stage = 'checking the graphics chip';
           const adapter = await navigator.gpu?.requestAdapter();
@@ -127,11 +146,14 @@ Limits: buffer ${mb(adapter.limits.maxBufferSize)}, binding ${mb(adapter.limits.
           }
           await run('Say hello in three words.', [{ role: 'user', content: 'Say hello in three words.' }], 8);
           for (const q of QUESTIONS) await run(q, [{ role: 'system', content: SYSTEM }, { role: 'user', content: q }], 100);
-          say('Test finished. Please screenshot this whole page and send it.');
+          say(`Test finished. Please screenshot this whole page and send it.${screenNote()}`);
         } catch (e) {
-          say(`Error while ${stage}: ${e?.message ?? e}`);
+          say(`Error while ${stage}: ${e?.message ?? e}${screenNote()}`);
         } finally {
           document.getElementById('start').disabled = false;
+          running = false;
+          wakeLock?.release().catch(() => {});
+          wakeLock = null;
         }
       };
 
