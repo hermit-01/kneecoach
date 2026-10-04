@@ -7,21 +7,33 @@ export default function Settings({ profile, onToggle }) {
       <h1>Settings</h1>
       <h2>Exercises</h2>
       <p className="muted">Switch off any exercise your treating doctor doesn't want you doing. Reps are set automatically: the app steps them up after 3 good days in a row, and down after a worse morning.</p>
-      {EXERCISES.map((ex) => (
-        <label className="card toggle" key={ex.id}>
-          <input type="checkbox" checked={!profile.disabled.includes(ex.id)} onChange={(e) => onToggle(ex.id, e.target.checked)} />
-          <span>
-            <strong>{ex.name}</strong> <span className="muted">({ex.clinicalName}) · stage {ex.stage}</span>
-          </span>
-        </label>
-      ))}
+      <ul className="list">
+        {EXERCISES.map((ex) => (
+          <li key={ex.id}>
+            <label className="toggle">
+              <input type="checkbox" checked={!profile.disabled.includes(ex.id)} onChange={(e) => onToggle(ex.id, e.target.checked)} />
+              <span>
+                <span className="list-title">{ex.name}</span>
+                <span className="list-sub">{ex.clinicalName} · stage {ex.stage}</span>
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
       <h2>Exercise guide (for your review)</h2>
-      {EXERCISES.map((ex) => (
-        <div className="card" key={`guide-${ex.id}`}>
-          <strong>{ex.name}</strong> <span className="muted">({ex.clinicalName})</span>
-          <ol>{ex.steps.map((s) => <li key={s}>{s}</li>)}</ol>
-        </div>
-      ))}
+      <div className="list">
+        {EXERCISES.map((ex) => (
+          <details key={`guide-${ex.id}`}>
+            <summary>
+              <span>
+                <span className="list-title">{ex.name}</span>
+                <span className="list-sub">{ex.clinicalName}</span>
+              </span>
+            </summary>
+            <ol>{ex.steps.map((s) => <li key={s}>{s}</li>)}</ol>
+          </details>
+        ))}
+      </div>
       <h2>Where the rules come from</h2>
       <ul>{Object.values(SOURCES).map((s) => <li key={s} className="reason">{s}</li>)}</ul>
       <p className="muted">

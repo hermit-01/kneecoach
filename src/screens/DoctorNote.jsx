@@ -38,19 +38,35 @@ export default function DoctorNote({ db, today, state, todayNotes }) {
   );
 }
 
+// 0-10 NRS over the window, with 0/5/10 guide lines and the first and last dates so a value can be read off.
 function PainChart({ series }) {
   const w = 320;
-  const h = 120;
-  const step = w / (series.length - 1);
-  const points = (key) =>
-    series
-      .map((s, i) => (s[key] === null ? null : `${Math.round(i * step)},${Math.round(h - (s[key] / 10) * h)}`))
-      .filter(Boolean)
-      .join(' ');
+  const h = 150;
+  const [left, right, top, bottom] = [24, 10, 10, 24];
+  const x = (i) => left + (i * (w - left - right)) / (series.length - 1);
+  const y = (v) => top + (h - top - bottom) * (1 - v / 10);
+  const marks = (key) => series.map((s, i) => (s[key] === null ? null : [x(i), y(s[key])])).filter(Boolean);
+  const day = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const first = day(series[0].date);
+  const last = day(series.at(-1).date);
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="chart" role="img" aria-label="Pain over the last 14 days">
-      <polyline fill="none" stroke="#c97f05" strokeWidth="3" points={points('morningPain')} />
-      <polyline fill="none" stroke="#2f9e57" strokeWidth="3" strokeDasharray="6 4" points={points('afterPain')} />
+    <svg viewBox={`0 0 ${w} ${h}`} className="chart" role="img" aria-label={`Pain from 0 to 10, ${first} to ${last}`}>
+      {[0, 5, 10].map((v) => (
+        <g key={v}>
+          <line className="chart-grid" x1={left} x2={w - right} y1={y(v)} y2={y(v)} />
+          <text className="chart-label" x={left - 7} y={y(v) + 3.5} textAnchor="end">{v}</text>
+        </g>
+      ))}
+      <text className="chart-label" x={left} y={h - 7}>{first}</text>
+      <text className="chart-label" x={w - right} y={h - 7} textAnchor="end">{last}</text>
+      {['morningPain', 'afterPain'].map((key) => (
+        <g key={key}>
+          <polyline className={key === 'morningPain' ? 'chart-morning' : 'chart-after'} points={marks(key).map(([px, py]) => `${px.toFixed(1)},${py.toFixed(1)}`).join(' ')} />
+          {marks(key).map(([px, py]) => (
+            <circle key={`${px}`} className={key === 'morningPain' ? 'chart-dot-morning' : 'chart-dot-after'} cx={px} cy={py} r="3" />
+          ))}
+        </g>
+      ))}
     </svg>
   );
 }

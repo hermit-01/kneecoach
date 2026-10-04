@@ -39,10 +39,9 @@ export default function Player({ plan, onFinish }) {
 
   return (
     <main className="screen">
-      <p className="muted">Exercise {state.index + 1} of {plan.length}</p>
       <h1>{item.exercise.name}</h1>
       <p className="muted">
-        {item.exercise.clinicalName} · {doseText(item)}
+        Exercise {state.index + 1} of {plan.length} · {item.exercise.clinicalName} · {doseText(item)}
         {item.holdSeconds ? `, hold ${item.holdSeconds} s` : ''}
       </p>
       <ol>{item.exercise.steps.map((s) => <li key={s}>{s}</li>)}</ol>
@@ -53,11 +52,14 @@ export default function Player({ plan, onFinish }) {
           {state.restLeft > 0 ? (
             <>
               <div className="timer">{state.restLeft}</div>
-              <p className="muted">Rest for a minute between sets.</p>
+              <p className="timer-label">Rest for a minute between sets.</p>
               <button type="button" className="btn" onClick={() => dispatch({ type: 'skipRest' })}>Skip the rest</button>
             </>
           ) : state.holdLeft !== null ? (
-            <div className="timer" aria-live="polite">{state.holdLeft}</div>
+            <>
+              <div className="timer" aria-live="polite">{state.holdLeft}</div>
+              <p className="timer-label">seconds left · keep holding</p>
+            </>
           ) : item.holdSeconds ? (
             <button type="button" className="btn primary" onClick={() => dispatch({ type: 'startHold', seconds: item.holdSeconds })}>
               Start {item.holdSeconds}-second hold
@@ -72,7 +74,7 @@ export default function Player({ plan, onFinish }) {
           {state.index + 1 < plan.length ? 'Next exercise' : 'Finish this round'}
         </button>
       ) : (
-        <button type="button" className="btn danger" onClick={() => dispatch({ type: 'next', id: item.exercise.id, painful: true })}>
+        <button type="button" className="btn danger-soft" onClick={() => dispatch({ type: 'next', id: item.exercise.id, painful: true })}>
           Too painful: skip this one
         </button>
       )}

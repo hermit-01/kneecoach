@@ -94,7 +94,7 @@ function TabBar({ tab, onChange }) {
   return (
     <nav className="tabbar">
       {tabs.map(([id, label]) => (
-        <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => onChange(id)}>{label}</button>
+        <button key={id} type="button" className={tab === id ? 'active' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => onChange(id)}>{label}</button>
       ))}
     </nav>
   );

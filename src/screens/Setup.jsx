@@ -12,7 +12,7 @@ export default function Setup({ today, onDone }) {
       <h2>Which knee is sore?</h2>
       <div className="row">
         {['left', 'right', 'both'].map((k) => (
-          <button key={k} type="button" className={`btn ${knee === k ? 'primary' : ''}`} onClick={() => setKnee(k)}>
+          <button key={k} type="button" className="btn choice" aria-pressed={knee === k} onClick={() => setKnee(k)}>
             {k[0].toUpperCase() + k.slice(1)}
           </button>
         ))}
@@ -31,6 +31,7 @@ export default function Setup({ today, onDone }) {
       <button type="button" className="btn primary" disabled={!knee} onClick={() => onDone({ knee, exerciseTime: time })}>
         Start
       </button>
+      {!knee && <p className="hint">Choose which knee is sore to continue.</p>}
     </main>
   );
 }

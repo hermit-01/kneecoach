@@ -42,16 +42,19 @@ export default function Plan({ view, decision, plan, rounds, onStart, top = null
       {top}
       <h1>Today: {plan.length} exercises, about {estimateMinutes(plan)} minutes</h1>
       {banners}
-      {plan.map((p) => (
-        <div className="card" key={p.exercise.id}>
-          <strong>{p.exercise.name}</strong> <span className="muted">({p.exercise.clinicalName})</span>
-          <div>
-            {doseText(p)}
-            {p.holdSeconds ? `, hold ${p.holdSeconds} s` : ''}
-            {p.sides.length > 1 ? ', each leg' : ''}
-          </div>
-        </div>
-      ))}
+      <ul className="list">
+        {plan.map((p) => (
+          <li key={p.exercise.id}>
+            <span className="list-title">{p.exercise.name}</span>
+            <span className="list-sub">{p.exercise.clinicalName}</span>
+            <div className="list-dose">
+              {doseText(p)}
+              {p.holdSeconds ? `, hold ${p.holdSeconds} s` : ''}
+              {p.sides.length > 1 ? ', each leg' : ''}
+            </div>
+          </li>
+        ))}
+      </ul>
       {progress && <p className="muted">{progress}</p>}
       {reasons}
       <p className="muted">
